@@ -23,7 +23,7 @@ a{color:inherit;text-decoration:none}
 
 /* NAV */
 .nav{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nav-h);display:flex;align-items:center;padding:0 clamp(16px,5vw,60px)}
-.nav::before{content:"";position:absolute;inset:0;background:rgba(14,11,8,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid rgba(255,255,255,.05);opacity:0;transition:opacity .4s var(--ease2)}
+.nav::before{content:"";position:absolute;inset:0;background:rgba(14,11,8,.95);border-bottom:1px solid rgba(255,255,255,.05);opacity:0;transition:opacity .4s var(--ease2)}
 .nav.scrolled::before{opacity:1}
 .nav-brand{display:flex;align-items:center;gap:14px;position:relative;z-index:1;flex-shrink:0}
 .nav-logo{height:52px;width:auto;filter:brightness(0) invert(1);opacity:.88;transition:opacity .3s}
@@ -78,7 +78,7 @@ section{padding:clamp(72px,9vw,120px) 0}
 .hero-review-text{font-size:.72rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.7)}
 
 /* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:999px;font-weight:500;font-size:.88rem;letter-spacing:.05em;cursor:pointer;border:0;font-family:inherit;transition:transform .3s var(--spring),box-shadow .3s,background .2s;will-change:transform}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:999px;font-weight:500;font-size:.88rem;letter-spacing:.05em;cursor:pointer;border:0;font-family:inherit;transition:transform .3s var(--spring),box-shadow .3s,background .2s}
 .btn:hover{transform:translateY(-2px)}
 .btn svg{width:15px;height:15px;flex-shrink:0;transition:transform .3s var(--spring)}
 .btn:hover svg{transform:translateX(3px)}
@@ -261,7 +261,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06);padding:
 .footer-inner a:hover{color:var(--gold)}
 
 /* SCROLL REVEAL */
-.reveal,.reveal-left,.reveal-right,.reveal-scale{opacity:0;transition:opacity .85s var(--silk),transform .85s var(--silk);will-change:opacity,transform}
+.reveal,.reveal-left,.reveal-right,.reveal-scale{opacity:0;transition:opacity .85s var(--silk),transform .85s var(--silk)}
 .reveal{transform:translateY(30px)}
 .reveal-left{transform:translateX(-30px)}
 .reveal-right{transform:translateX(30px)}
