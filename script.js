@@ -1,20 +1,28 @@
 // ── SCROLL PROGRESS ─────────────────────────────────────────────────────
-const spbFill = document.getElementById('spb-fill');
-window.addEventListener('scroll', () => {
-  const d = document.documentElement;
-  spbFill.style.width = (d.scrollTop / (d.scrollHeight - d.clientHeight) * 100) + '%';
-}, {passive:true});
+var spbFill = document.getElementById('spb-fill');
+if (spbFill) {
+  window.addEventListener('scroll', function() {
+    var d = document.documentElement;
+    spbFill.style.width = (d.scrollTop / (d.scrollHeight - d.clientHeight) * 100) + '%';
+  }, {passive:true});
+}
 
 // ── NAV GLASS ────────────────────────────────────────────────────────────
-const navEl = document.getElementById('nav');
-window.addEventListener('scroll', () => navEl.classList.toggle('scrolled', scrollY > 60), {passive:true});
+var navEl = document.getElementById('nav');
+if (navEl) {
+  window.addEventListener('scroll', function() { navEl.classList.toggle('scrolled', scrollY > 60); }, {passive:true});
+}
 
 // ── HAMBURGER ────────────────────────────────────────────────────────────
-const navLinks = document.getElementById('navLinks');
-const menuBtn = document.getElementById('menuBtn');
-navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-  navLinks.classList.remove('open'); menuBtn.classList.remove('open'); document.body.style.overflow = '';
-}));
+var navLinks = document.getElementById('navLinks');
+var menuBtn = document.getElementById('menuBtn');
+if (navLinks && menuBtn) {
+  navLinks.querySelectorAll('a').forEach(function(a) {
+    a.addEventListener('click', function() {
+      navLinks.classList.remove('open'); menuBtn.classList.remove('open'); document.body.style.overflow = '';
+    });
+  });
+}
 
 // ── STAGGER: inline transition-delay (avoids :nth-child conflicts) ───────
 document.querySelectorAll('.svc-card').forEach((el, i) => el.style.transitionDelay = (i * 90) + 'ms');
@@ -123,7 +131,7 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
 });
 
 // ── CONTACT FORM ──────────────────────────────────────────────────────────
-document.getElementById('formBtn').addEventListener('click', function() {
+var formBtn = document.getElementById('formBtn'); if (formBtn) formBtn.addEventListener('click', function() {
   var w = document.querySelector('.form-wrap');
   var v = function(s) { return (w.querySelector(s) || {}).value || ''; };
   var sub  = encodeURIComponent('Carpentry enquiry \u2014 ' + v('input[type=text]'));
