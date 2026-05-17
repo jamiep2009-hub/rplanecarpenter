@@ -83,6 +83,17 @@ var tileIO = new IntersectionObserver(function(entries) {
 var tg = document.getElementById('tileGrid');
 if (tg) tileIO.observe(tg);
 
+// ── REVIEW CARDS: staggered fade-up on scroll ─────────────────────────
+var reviewIO = new IntersectionObserver(function(entries) {
+  if (!entries[0].isIntersecting) return;
+  document.querySelectorAll('.review-card').forEach(function(card, i) {
+    setTimeout(function() { card.classList.add('in'); }, i * 120);
+  });
+  reviewIO.disconnect();
+}, {threshold: 0.08});
+var rg = document.querySelector('.reviews-grid');
+if (rg) reviewIO.observe(rg);
+
 
 // ── HERO PARALLAX — 25% scroll speed ─────────────────────────────────────
 var heroBg = document.querySelector('.hero-bg');
