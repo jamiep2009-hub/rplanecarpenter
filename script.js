@@ -55,6 +55,14 @@ requestAnimationFrame(function() {
   }, {threshold: 0.35});
   var ase = document.querySelector('.about-stats');
   if (ase) aboutIO.observe(ase);
+  if (window.matchMedia('(hover:none)').matches) {
+    var svcIO = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('scrolled-in'); svcIO.unobserve(e.target); }
+      });
+    }, {threshold: 0.4});
+    document.querySelectorAll('.svc-card').forEach(function(c) { svcIO.observe(c); });
+  }
 });
 
 // ── SCROLL REVEAL (threshold 0.1) ────────────────────────────────────────

@@ -42,9 +42,10 @@ a{color:inherit;text-decoration:none}
 .menu-btn.open span:nth-child(2){opacity:0;transform:scaleX(0)}
 .menu-btn.open span:last-child{transform:translateY(-7px) rotate(-45deg)}
 @media(max-width:920px){
-  .nav-links,.nav-cta{display:none}
+  .nav-links{display:flex;flex-direction:column;align-items:stretch;position:fixed;top:var(--nav-h);left:0;right:0;bottom:0;background:rgba(14,11,8,.98);padding:20px;gap:6px;overflow-y:auto;z-index:99;opacity:0;visibility:hidden;transform:translateY(-12px);transition:opacity .35s var(--silk),transform .35s var(--silk),visibility 0s .35s;pointer-events:none}
+  .nav-cta{display:none}
   .menu-btn{display:flex}
-  .nav-links.open{display:flex;flex-direction:column;align-items:stretch;position:fixed;top:var(--nav-h);left:0;right:0;bottom:0;background:rgba(14,11,8,.98);padding:20px;gap:6px;overflow-y:auto;z-index:99}
+  .nav-links.open{opacity:1;visibility:visible;transform:none;transition:opacity .35s var(--silk),transform .35s var(--silk),visibility 0s 0s;pointer-events:auto}
   .nav-links.open a{padding:16px 18px;font-size:.95rem;border-radius:12px;color:rgba(255,255,255,.82)}
   .nav-links.open .nav-dot{display:none}
   .nav-links.open .nav-cta{display:block;margin:10px 0 0;padding:16px;border-radius:12px;text-align:center;font-size:.95rem}
@@ -250,20 +251,19 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06);padding:
   .form-wrap{animation:sd-right 1.6s ease-out both;animation-timeline:view();animation-range:entry 5% entry 55%}
 }
 @media(hover:none){@supports(animation-timeline:view()){
-  .svc-card{view-timeline:--svc block}
-  .svc-card::before{transition:none}
   @keyframes svc-ink{from{transform:translateY(100%)}to{transform:translateY(0)}}
   @keyframes svc-h3 {from{color:var(--ink)}  to{color:var(--gold3)}}
   @keyframes svc-p  {from{color:var(--muted)} to{color:rgba(255,255,255,.58)}}
   @keyframes svc-num{from{color:var(--muted)} to{color:rgba(255,255,255,.14)}}
   @keyframes svc-ico{from{color:var(--ink);transform:scale(1)} to{color:var(--gold);transform:scale(1.1)}}
   @keyframes svc-lnk{from{color:var(--gold2)} to{color:var(--gold3)}}
-  .svc-card::before  {animation:svc-ink 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  .svc-card h3       {animation:svc-h3  1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  .svc-card p        {animation:svc-p   1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  .svc-card .svc-num {animation:svc-num 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  .svc-card .svc-icon{animation:svc-ico 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  .svc-card .svc-link{animation:svc-lnk 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
+  html:not(.js-ok) .svc-card{view-timeline:--svc block}
+  html:not(.js-ok) .svc-card::before{transition:none;animation:svc-ink 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
+  html:not(.js-ok) .svc-card h3       {animation:svc-h3  1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
+  html:not(.js-ok) .svc-card p        {animation:svc-p   1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
+  html:not(.js-ok) .svc-card .svc-num {animation:svc-num 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
+  html:not(.js-ok) .svc-card .svc-icon{animation:svc-ico 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
+  html:not(.js-ok) .svc-card .svc-link{animation:svc-lnk 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
 }}
 .tile.in{animation:tileIn .65s var(--silk) both}
 @media(prefers-reduced-motion:reduce){.reveal,.reveal-left,.reveal-right,.reveal-scale{opacity:1;transform:none}.tile{opacity:1}}
