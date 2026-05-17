@@ -10,14 +10,8 @@ const navEl = document.getElementById('nav');
 window.addEventListener('scroll', () => navEl.classList.toggle('scrolled', scrollY > 60), {passive:true});
 
 // ── HAMBURGER ────────────────────────────────────────────────────────────
-const menuBtn = document.getElementById('menuBtn');
 const navLinks = document.getElementById('navLinks');
-menuBtn.addEventListener('click', () => {
-  const o = navLinks.classList.toggle('open');
-  menuBtn.classList.toggle('open', o);
-  menuBtn.setAttribute('aria-expanded', String(o));
-  document.body.style.overflow = o ? 'hidden' : '';
-});
+const menuBtn = document.getElementById('menuBtn');
 navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
   navLinks.classList.remove('open'); menuBtn.classList.remove('open'); document.body.style.overflow = '';
 }));

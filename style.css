@@ -9,7 +9,7 @@
   --spring:cubic-bezier(.22,.68,0,1.2);
   --ease2:cubic-bezier(.4,0,.2,1);
 }
-html{scroll-behavior:smooth;scroll-padding-top:var(--nav-h)}
+html{scroll-behavior:smooth;scroll-padding-top:var(--nav-h);overflow-x:hidden}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 body{font-family:"Nunito",system-ui,sans-serif;background:var(--cream);color:var(--ink2);line-height:1.65;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden;font-feature-settings:"kern" 1,"liga" 1}
 img{max-width:100%;display:block}
