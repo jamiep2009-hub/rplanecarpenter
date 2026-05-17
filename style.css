@@ -58,7 +58,7 @@ section{padding:clamp(72px,9vw,120px) 0}
 
 /* HERO */
 .hero{position:relative;min-height:100vh;min-height:100svh;display:flex;align-items:stretch;overflow:hidden;color:#fff}
-.hero-bg{position:absolute;inset:-8%;z-index:0;will-change:transform;background:url('images/hero.jpg') center/cover no-repeat}
+.hero-bg{position:absolute;inset:-8%;z-index:0;background:url('images/hero.jpg') center/cover no-repeat}
 .hero-overlay{position:absolute;inset:0;z-index:1;background:linear-gradient(115deg,rgba(14,11,8,.82) 0%,rgba(14,11,8,.5) 52%,rgba(14,11,8,.22) 100%)}
 .hero-inner{
   position:relative;z-index:2;width:100%;
@@ -269,9 +269,9 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06);padding:
 .reveal.in,.reveal-left.in,.reveal-right.in,.reveal-scale.in{opacity:1;transform:none}
 @keyframes tileIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 
-/* CSS SCROLL-DRIVEN ANIMATIONS */
+/* CSS SCROLL-DRIVEN ANIMATIONS — Chrome/Edge only, Safari uses JS reveal */
 @keyframes rv-up{from{opacity:0;transform:translateY(50px)}to{opacity:1;transform:none}}
-@supports (animation-timeline: view()) {
+@supports (animation-timeline: view()) and (not (-webkit-touch-callout: none)) {
   @keyframes sd-up   {from{opacity:0;transform:translateY(70px) scale(.96)}to{opacity:1;transform:none}}
   @keyframes sd-left {from{opacity:0;transform:translateX(-70px) scale(.96)}to{opacity:1;transform:none}}
   @keyframes sd-right{from{opacity:0;transform:translateX(70px)  scale(.96)}to{opacity:1;transform:none}}
@@ -314,28 +314,3 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06);padding:
   .tile img{transition-duration:.4s}
 }
 
-/* CSS COUNTING */
-@property --n0{syntax:'<number>';initial-value:0;inherits:false}
-@property --n1{syntax:'<number>';initial-value:0;inherits:false}
-@property --n2{syntax:'<number>';initial-value:0;inherits:false}
-@property --n3{syntax:'<number>';initial-value:0;inherits:false}
-@property --na{syntax:'<number>';initial-value:0;inherits:false}
-@property --nb{syntax:'<number>';initial-value:0;inherits:false}
-@keyframes kn0{to{--n0:20}} @keyframes kn1{to{--n1:250}}
-@keyframes kn2{to{--n2:5}}  @keyframes kn3{to{--n3:100}}
-@keyframes kna{to{--na:250}} @keyframes knb{to{--nb:5}}
-#cnt-years   {animation:kn0 1.4s linear .6s both;counter-reset:v calc(round(down,var(--n0),1))}
-#cnt-years::after   {content:counter(v) '+'}
-#cnt-projects{animation:kn1 2.0s linear .6s both;counter-reset:v calc(round(down,var(--n1),1))}
-#cnt-projects::after{content:counter(v) '+'}
-#cnt-stars   {animation:kn2 1.5s linear .6s both;counter-reset:v calc(round(down,var(--n2),1))}
-#cnt-stars::after   {content:counter(v) '\2605'}
-#cnt-bespoke {animation:kn3 1.8s linear .6s both;counter-reset:v calc(round(down,var(--n3),1))}
-#cnt-bespoke::after {content:counter(v) '%'}
-#astat-proj{animation:kna 2.0s linear 0s both;counter-reset:v calc(round(down,var(--na),1))}
-#astat-proj::after{content:counter(v) '+'}
-#astat-rev {animation:knb 1.5s linear 0s both;counter-reset:v calc(round(down,var(--nb),1))}
-#astat-rev::after {content:counter(v) '\2605'}
-.js-ok #cnt-years::after,.js-ok #cnt-projects::after,
-.js-ok #cnt-stars::after,.js-ok #cnt-bespoke::after,
-.js-ok #astat-proj::after,.js-ok #astat-rev::after{content:none}
