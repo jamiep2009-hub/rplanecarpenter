@@ -107,13 +107,6 @@ if (tg) {
   tileIO.observe(tg);
 }
 
-// ── HERO PARALLAX (desktop only — mobile GPU can't handle constant repaints) ──
-var heroBg = document.querySelector('.hero-bg');
-if (heroBg && !window.matchMedia('(hover:none)').matches) {
-  window.addEventListener('scroll', function() {
-    heroBg.style.transform = 'translateY(' + (scrollY * 0.25) + 'px)';
-  }, {passive:true});
-}
 
 // ── MAGNETIC GALLERY HOVER ────────────────────────────────────────────────
 document.querySelectorAll('#tileGrid .tile').forEach(function(tile) {
