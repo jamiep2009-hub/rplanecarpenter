@@ -287,10 +287,11 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06);padding:
 @keyframes rv-up{from{opacity:0;transform:translateY(50px)}to{opacity:1;transform:none}}
 @supports (animation-timeline: view()) {
   @keyframes sd-up   {from{opacity:0;transform:translateY(70px) scale(.96)}to{opacity:1;transform:none}}
+  @keyframes sd-lift {from{transform:translateY(48px) scale(.97)}to{transform:none}}
   @keyframes sd-left {from{opacity:0;transform:translateX(-70px) scale(.96)}to{opacity:1;transform:none}}
   @keyframes sd-right{from{opacity:0;transform:translateX(70px)  scale(.96)}to{opacity:1;transform:none}}
   .section-head{animation:sd-up 1.6s ease-out both;animation-timeline:view();animation-range:entry 5% entry 55%}
-  .svc-card    {animation:sd-up 1.5s ease-out both;animation-timeline:view();animation-range:entry 0% entry 55%}
+  .svc-card    {animation:sd-lift 1.5s ease-out both;animation-timeline:view();animation-range:entry 0% entry 55%}
   #tileGrid .tile{animation:sd-up 1.4s ease-out both;animation-timeline:view();animation-range:entry 0% entry 50%}
   .about-grid>div:first-child{animation:sd-left  1.6s ease-out both;animation-timeline:view();animation-range:entry 5% entry 55%}
   .about-grid>div:last-child {animation:sd-right 1.6s ease-out both;animation-timeline:view();animation-range:entry 5% entry 55%}
@@ -305,21 +306,6 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06);padding:
   .review-card:nth-child(3n+2){animation-range:entry 8% entry 60%}
   .review-card:nth-child(3n+3){animation-range:entry 16% entry 68%}
 }
-@media(hover:none){@supports(animation-timeline:view()){
-  @keyframes svc-ink{from{transform:translateY(100%)}to{transform:translateY(0)}}
-  @keyframes svc-h3 {from{color:var(--ink)}  to{color:var(--gold3)}}
-  @keyframes svc-p  {from{color:var(--muted)} to{color:rgba(255,255,255,.58)}}
-  @keyframes svc-num{from{color:var(--muted)} to{color:rgba(255,255,255,.14)}}
-  @keyframes svc-ico{from{color:var(--ink);transform:scale(1)} to{color:var(--gold);transform:scale(1.1)}}
-  @keyframes svc-lnk{from{color:var(--gold2)} to{color:var(--gold3)}}
-  html:not(.js-ok) .svc-card{view-timeline:--svc block}
-  html:not(.js-ok) .svc-card::before{transition:none;animation:svc-ink 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  html:not(.js-ok) .svc-card h3       {animation:svc-h3  1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  html:not(.js-ok) .svc-card p        {animation:svc-p   1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  html:not(.js-ok) .svc-card .svc-num {animation:svc-num 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  html:not(.js-ok) .svc-card .svc-icon{animation:svc-ico 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-  html:not(.js-ok) .svc-card .svc-link{animation:svc-lnk 1s ease both;animation-timeline:--svc;animation-range:entry 45% entry 85%}
-}}
 .tile.in{animation:tileIn .65s var(--silk) both}
 @media(prefers-reduced-motion:reduce){.reveal,.reveal-left,.reveal-right,.reveal-scale{opacity:1;transform:none}.tile{opacity:1}}
 /* reduce animation intensity on mobile */
