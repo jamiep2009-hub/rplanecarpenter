@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="header-v2.css">
 <link rel="stylesheet" href="transformation-v2.css">
+<link rel="stylesheet" href="photos-v2.css">
 <link rel="stylesheet" href="reviews-v2.css">
 </head>
 <body>
@@ -260,23 +261,78 @@
   </div>
 </section>
 
-<section class="gallery-s" id="work">
-  <div class="wrap">
-    <div class="section-head center reveal">
-      <div class="eyebrow">Featured work</div>
-      <h2 class="section-h">Built with care,<br><em>finished to last</em></h2>
-      <p class="lead">A selection of recent projects. Every piece designed and built by the same pair of hands.</p>
-    </div>
-    <div class="tile-grid" id="tileGrid">
-      <div class="tile" data-cat="kitchen"><img src="images/img01.jpg" alt="White shaker kitchen with walnut worktop and blue splashback" loading="lazy" width="600" height="270"><div class="tile-label"><span class="tile-tag">Country Kitchen</span><span class="tile-title">White shaker, walnut worktop &amp; blue splashback</span></div></div>
-      <div class="tile" data-cat="kitchen"><img src="images/img02.jpg" alt="Open-plan kitchen with shaker units and curved stone island" loading="lazy" width="600" height="270"><div class="tile-label"><span class="tile-tag">Open-plan Kitchen</span><span class="tile-title">Shaker units &amp; curved stone island</span></div></div>
-      <div class="tile" data-cat="kitchen"><img src="images/img03.jpg" alt="Kitchen island with stone worktop" loading="lazy" width="600" height="270"><div class="tile-label"><span class="tile-tag">Kitchen Island</span><span class="tile-title">Full island view &amp; stone worktop</span></div></div>
-      <div class="tile" data-cat="wardrobe"><img src="images/img04.jpg" alt="Bespoke step drawers with LED strip lighting" loading="lazy" width="600" height="270"><div class="tile-label"><span class="tile-tag">Storage &amp; Drawers</span><span class="tile-title">Bespoke step drawers &amp; LED strip</span></div></div>
-      <div class="tile" data-cat="wardrobe"><img src="images/img05.jpg" alt="Teal fitted dressing room" loading="lazy" width="600" height="270"><div class="tile-label"><span class="tile-tag">Fitted Dressing Room</span><span class="tile-title">Teal fitted dressing room</span></div></div>
-      <div class="tile" data-cat="wardrobe"><img src="images/img06.jpg" alt="Cream shaker floor-to-ceiling wardrobes" loading="lazy" width="600" height="270"><div class="tile-label"><span class="tile-tag">Floor-to-Ceiling</span><span class="tile-title">Cream shaker, floor to ceiling</span></div></div>
-    </div>
-    <div class="gallery-cta reveal">
-      <a href="gallery.html" class="btn btn-gold-outline">View full gallery &rarr;</a>
+<section class="gx" id="work">
+  <div class="gx-wrap">
+    <header class="gx-head">
+      <div>
+        <p class="gx-eyebrow">Selected work · 2003–today</p>
+        <h2 class="gx-title">Built with care,<br><em>finished to last.</em></h2>
+      </div>
+      <a class="gx-cta" href="gallery.html">
+        View full gallery
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M5 12h14M13 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </header>
+
+    <div class="gx-grid">
+<a class="gx-tile gx-tile-hero" href="gallery.html">
+  <img src="images/img02.jpg" alt="Open-plan kitchen with shaker units and curved stone island" loading="lazy" width="600" height="400">
+  <div class="gx-label">
+    <span class="gx-tag">Open-plan Kitchen</span>
+    <span class="gx-tile-title">Shaker units &amp; curved stone island</span>
+  </div>
+</a>
+<a class="gx-tile gx-tile-wide" href="gallery.html">
+  <img src="images/img01.jpg" alt="White shaker kitchen with walnut worktop and blue splashback" loading="lazy" width="600" height="400">
+  <div class="gx-label">
+    <span class="gx-tag">Country Kitchen</span>
+    <span class="gx-tile-title">White shaker, walnut worktop &amp; blue splashback</span>
+  </div>
+</a>
+<a class="gx-tile" href="gallery.html">
+  <img src="images/img03.jpg" alt="Kitchen island with stone worktop" loading="lazy" width="600" height="400">
+  <div class="gx-label">
+    <span class="gx-tag">Kitchen Island</span>
+    <span class="gx-tile-title">Full island view &amp; stone worktop</span>
+  </div>
+</a>
+<a class="gx-tile" href="gallery.html">
+  <img src="images/img07.jpg" alt="Duck-egg painted bookcase and cabinets" loading="lazy" width="600" height="400">
+  <div class="gx-label">
+    <span class="gx-tag">Bookcase &amp; Cabinetry</span>
+    <span class="gx-tile-title">Duck-egg painted bookcase &amp; cabinets</span>
+  </div>
+</a>
+<a class="gx-tile" href="gallery.html">
+  <img src="images/img04.jpg" alt="Bespoke step drawers with LED strip lighting" loading="lazy" width="600" height="400">
+  <div class="gx-label">
+    <span class="gx-tag">Storage &amp; Drawers</span>
+    <span class="gx-tile-title">Bespoke step drawers &amp; LED strip</span>
+  </div>
+</a>
+<a class="gx-tile" href="gallery.html">
+  <img src="images/img06.jpg" alt="Cream shaker floor-to-ceiling wardrobes" loading="lazy" width="600" height="400">
+  <div class="gx-label">
+    <span class="gx-tag">Floor-to-Ceiling</span>
+    <span class="gx-tile-title">Cream shaker, floor to ceiling</span>
+  </div>
+</a>
+<a class="gx-tile gx-tile-hero" href="gallery.html">
+  <img src="images/img05.jpg" alt="Teal fitted dressing room" loading="lazy" width="600" height="400">
+  <div class="gx-label">
+    <span class="gx-tag">Fitted Dressing Room</span>
+    <span class="gx-tile-title">Teal fitted dressing room</span>
+  </div>
+</a>
+<a class="gx-tile gx-tile-wide" href="gallery.html">
+  <img src="images/img10.jpg" alt="Reed-oak vanity and botanical feature wall" loading="lazy" width="600" height="400">
+  <div class="gx-label">
+    <span class="gx-tag">Bathroom Joinery</span>
+    <span class="gx-tile-title">Reed-oak vanity &amp; botanical feature wall</span>
+  </div>
+</a>
     </div>
   </div>
 </section>
@@ -389,6 +445,7 @@
 <script src="script.js"></script>
 <script src="header-v2.js"></script>
 <script src="transformation-v2.js?v=2"></script>
+<script src="photos-v2.js"></script>
 <script src="reviews-v2.js"></script>
 </body>
 </html>
