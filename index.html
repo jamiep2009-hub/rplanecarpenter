@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="header-v2.css">
 <link rel="stylesheet" href="transformation-v2.css">
+<link rel="stylesheet" href="reviews-v2.css">
 </head>
 <body>
 
@@ -280,55 +281,32 @@
   </div>
 </section>
 
-<section id="reviews" class="reviews-section">
-  <div class="wrap">
-    <div class="section-head center reveal">
-      <p class="eyebrow">Google Reviews</p>
-      <h2 class="section-h">What clients <em>say</em></h2>
-      <p class="lead">Every word below is a real Google review. Five stars &mdash; every single time.</p>
-    </div>
-    <div class="reviews-score-row reveal-scale">
-      <div class="reviews-score-num">5.0</div>
-      <div>
-        <div class="reviews-score-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <div class="reviews-score-label">Based on Google Reviews</div>
-      </div>
-    </div>
-    <div class="reviews-grid">
-      <div class="review-card reveal">
-        <div class="review-q">&ldquo;</div>
-        <p class="review-text">First class work carried out by Robbie. Very reliable and tidy. We were extremely happy with our kitchen which he fitted. Would highly recommend.</p>
-        <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      </div>
-      <div class="review-card reveal">
-        <div class="review-q">&ldquo;</div>
-        <p class="review-text">Highly recommend Robbie &mdash; he has fitted 14 kitchens for me now and I highly recommend his work. Exceptional quality every time.</p>
-        <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      </div>
-      <div class="review-card reveal">
-        <div class="review-q">&ldquo;</div>
-        <p class="review-text">Robbie recently transformed my out of date bathroom and gave it the modern touch it needed. Nothing was too much trouble, he kept in touch, and achieved a great result in the time frame he gave me.</p>
-        <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      </div>
-      <div class="review-card reveal">
-        <div class="review-q">&ldquo;</div>
-        <p class="review-text">We can&rsquo;t say thank you enough. Robbie gave a quote in a timely fashion and kept to the estimated delivery and installation time. We are so pleased with the end result and would highly recommend him.</p>
-        <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      </div>
-      <div class="review-card reveal">
-        <div class="review-q">&ldquo;</div>
-        <p class="review-text">He&rsquo;s an absolute professional, neat &amp; tidy, meticulous in his work and a really nice chap as well. It was a pleasure to have him in the house. If you have appointed Robbie for your project you&rsquo;ve made an excellent choice!</p>
-        <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      </div>
-      <div class="review-card reveal">
-        <div class="review-q">&ldquo;</div>
-        <p class="review-text">Not only was his own work of the highest quality, but he also organised the other trades, ensuring the project ran like clockwork. We would happily employ Robbie again and have no hesitation in recommending him.</p>
-        <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      </div>
-    </div>
-    <div class="reviews-footer reveal">
-      <a href="https://www.google.com/maps/search/R+Plane+Carpenter+Norwich" target="_blank" rel="noopener" class="leave-review-btn">Leave us a review on Google <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
-    </div>
+<section id="reviews" class="rv">
+  <div class="rv-spotlight" aria-hidden="true"></div>
+
+  <p class="rv-marker">·&nbsp; Spotlight &nbsp;·</p>
+
+  <div class="rv-score">
+    <div class="rv-stars" aria-label="5 out of 5 stars"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.9L22 10l-5.5 4.8L18 22l-6-3.5L6 22l1.5-7.2L2 10l7.1-1.1z"/></svg><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.9L22 10l-5.5 4.8L18 22l-6-3.5L6 22l1.5-7.2L2 10l7.1-1.1z"/></svg><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.9L22 10l-5.5 4.8L18 22l-6-3.5L6 22l1.5-7.2L2 10l7.1-1.1z"/></svg><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.9L22 10l-5.5 4.8L18 22l-6-3.5L6 22l1.5-7.2L2 10l7.1-1.1z"/></svg><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.9L22 10l-5.5 4.8L18 22l-6-3.5L6 22l1.5-7.2L2 10l7.1-1.1z"/></svg></div>
+    <span class="rv-score-label">5.0 across every Google review · 250+ projects</span>
+  </div>
+
+  <div class="rv-quote-wrap rv-bump">
+    <span class="rv-quote-mark" aria-hidden="true">"</span>
+    <blockquote class="rv-quote">First class work carried out by Robbie. Very reliable and tidy. We were extremely happy with our kitchen which he fitted. Would highly recommend.</blockquote>
+    <footer class="rv-meta">
+      <span class="rv-initial">J</span>
+      <span class="rv-project">Bespoke kitchen</span>
+    </footer>
+  </div>
+
+  <div class="rv-chips" role="tablist" aria-label="Choose a review">
+      <button class="rv-chip is-active" type="button" data-i="0"><span class="rv-chip-num">01</span><span class="rv-chip-label">Bespoke kitchen</span></button>
+      <button class="rv-chip" type="button" data-i="1"><span class="rv-chip-num">02</span><span class="rv-chip-label">Trade · 14 kitchens</span></button>
+      <button class="rv-chip" type="button" data-i="2"><span class="rv-chip-num">03</span><span class="rv-chip-label">Bathroom joinery</span></button>
+      <button class="rv-chip" type="button" data-i="3"><span class="rv-chip-num">04</span><span class="rv-chip-label">Fitted wardrobes</span></button>
+      <button class="rv-chip" type="button" data-i="4"><span class="rv-chip-num">05</span><span class="rv-chip-label">Home library</span></button>
+      <button class="rv-chip" type="button" data-i="5"><span class="rv-chip-num">06</span><span class="rv-chip-label">Whole-room install</span></button>
   </div>
 </section>
 
@@ -408,5 +386,6 @@
 <script src="script.js"></script>
 <script src="header-v2.js"></script>
 <script src="transformation-v2.js?v=2"></script>
+<script src="reviews-v2.js"></script>
 </body>
 </html>
