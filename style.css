@@ -369,7 +369,6 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06)}
   @keyframes sd-right{from{opacity:0;transform:translateX(70px)  scale(.96)}to{opacity:1;transform:none}}
   .section-head{animation:sd-up 1.6s ease-out both;animation-timeline:view();animation-range:entry 5% entry 55%}
   .svc-card    {animation:sd-lift 1.5s ease-out both;animation-timeline:view();animation-range:entry 0% entry 55%}
-  #tileGrid .tile{animation:sd-up 1.4s ease-out both;animation-timeline:view();animation-range:entry 0% entry 50%}
   .about-grid>div:first-child{animation:sd-left  1.6s ease-out both;animation-timeline:view();animation-range:entry 5% entry 55%}
   .about-grid>div:last-child {animation:sd-right 1.6s ease-out both;animation-timeline:view();animation-range:entry 5% entry 55%}
   @keyframes sd-quote{from{opacity:0;transform:translateY(40px) skewY(1.5deg)}to{opacity:1;transform:none}}
