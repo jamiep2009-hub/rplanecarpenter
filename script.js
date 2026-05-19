@@ -137,6 +137,87 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
   });
 });
 
+// ── PREMIUM SCROLL ANIMATIONS ────────────────────────────────
+(function () {
+  if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+
+  var isMobile = window.matchMedia('(max-width:768px)').matches;
+  var sy = 0, ticking = false, rafId = null;
+
+  var heroBg      = document.querySelector('.hero-bg');
+  var heroCopyEl  = document.querySelector('.hero-copy');
+  var heroStatsEl = document.querySelector('.hero-stats');
+  var heroEl      = document.querySelector('.hero');
+  var showcaseEl  = document.getElementById('showcase');
+  var showcaseImg = showcaseEl ? showcaseEl.querySelector('.showcase-img') : null;
+
+  if (heroBg)      heroBg.style.willChange     = 'transform';
+  if (showcaseImg) showcaseImg.style.willChange = 'transform';
+
+  function runHero() {
+    if (!heroEl || !heroBg) return;
+    var h = heroEl.offsetHeight;
+    if (sy >= h) { heroBg.style.transform = ''; return; }
+    if (sy === 0) {
+      heroBg.style.transform = '';
+      if (!isMobile) {
+        if (heroCopyEl)  { heroCopyEl.style.opacity = '';  heroCopyEl.style.transform = ''; }
+        if (heroStatsEl) { heroStatsEl.style.opacity = ''; heroStatsEl.style.transform = ''; }
+      }
+      return;
+    }
+    var p = sy / h;
+    heroBg.style.transform = 'scale(' + (1 + p * (isMobile ? 0.05 : 0.09)) + ') translateY(' + (p * (isMobile ? -18 : -38)) + 'px)';
+    if (!isMobile) {
+      if (heroCopyEl) {
+        heroCopyEl.style.opacity   = String(Math.max(0, 1 - p * 2.4));
+        heroCopyEl.style.transform = 'translateY(' + (p * -72) + 'px)';
+      }
+      if (heroStatsEl) {
+        heroStatsEl.style.opacity   = String(Math.max(0, 1 - p * 2.8));
+        heroStatsEl.style.transform = 'translateY(' + (p * -44) + 'px)';
+      }
+    }
+  }
+
+  function runShowcase() {
+    if (!showcaseEl || !showcaseImg || isMobile) return;
+    var rect  = showcaseEl.getBoundingClientRect();
+    var total = showcaseEl.offsetHeight - window.innerHeight;
+    if (total <= 0) return;
+    var p   = Math.max(0, Math.min(1, -rect.top / total));
+    showcaseImg.style.transform = 'scale(' + (1 + p * 0.07) + ') rotate(' + ((p - 0.5) * 1.8) + 'deg)';
+  }
+
+  function onFrame() { runHero(); runShowcase(); ticking = false; }
+
+  window.addEventListener('scroll', function () {
+    sy = window.pageYOffset;
+    if (!ticking) { rafId = requestAnimationFrame(onFrame); ticking = true; }
+  }, { passive: true });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && rafId) { cancelAnimationFrame(rafId); ticking = false; }
+  });
+}());
+
+// ── SERVICE CARD TILT ─────────────────────────────────────────
+if (!window.matchMedia('(hover:none)').matches) {
+  document.querySelectorAll('.svc-card').forEach(function (card) {
+    card.addEventListener('mousemove', function (e) {
+      var r = card.getBoundingClientRect();
+      var x = ((e.clientX - r.left) / r.width  - 0.5) * 2;
+      var y = ((e.clientY - r.top)  / r.height - 0.5) * 2;
+      card.style.transform  = 'perspective(900px) rotateY(' + (x * 3.5) + 'deg) rotateX(' + (-y * 3.5) + 'deg) translateY(-3px)';
+      card.style.transition = 'transform .1s ease';
+    });
+    card.addEventListener('mouseleave', function () {
+      card.style.transform  = '';
+      card.style.transition = 'transform .6s cubic-bezier(.22,.68,0,1.2)';
+    });
+  });
+}
+
 // ── CONTACT FORM ──────────────────────────────────────────────────────────
 var formBtn = document.getElementById('formBtn');
 if (formBtn) {

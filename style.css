@@ -56,7 +56,7 @@ a{color:inherit;text-decoration:none}
 section{padding:clamp(72px,9vw,120px) 0}
 
 /* HERO */
-.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;align-items:stretch;color:#fff;background:var(--ink2)}
+.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;align-items:stretch;overflow:hidden;color:#fff;background:var(--ink2)}
 .hero-bg{position:absolute;inset:0;z-index:0;background:url('images/hero.jpg') center/cover no-repeat}
 .hero-overlay{position:absolute;inset:0;z-index:1;background:linear-gradient(115deg,rgba(14,11,8,.82) 0%,rgba(14,11,8,.5) 52%,rgba(14,11,8,.22) 100%)}
 .hero-inner{position:relative;z-index:2;width:100%;padding:calc(var(--nav-h) + 60px) clamp(24px,7vw,100px) 80px;display:flex;align-items:center;justify-content:space-between;gap:48px}
@@ -104,6 +104,25 @@ section{padding:clamp(72px,9vw,120px) 0}
 }
 .stat-num{font-family:"Cormorant Garamond",serif;font-size:2.6rem;font-weight:400;color:#fff;line-height:1;letter-spacing:-.02em}
 .stat-label{font-size:.59rem;font-weight:500;letter-spacing:.17em;text-transform:uppercase;color:rgba(255,255,255,.42);margin-top:6px}
+
+/* SHOWCASE (pinned image + scrolling panels) */
+.showcase{background:var(--ink2);color:#fff;overflow:hidden}
+.showcase-inner{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+.showcase-vis{position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));overflow:hidden}
+.showcase-img-wrap{width:100%;height:100%}
+.showcase-img{width:100%;height:100%;object-fit:cover;display:block;transform-origin:center center}
+.showcase-copy{display:flex;flex-direction:column}
+.showcase-panel{min-height:calc(100vh - var(--nav-h));display:flex;flex-direction:column;justify-content:center;padding:clamp(48px,7vw,100px) clamp(40px,6vw,80px)}
+.showcase-panel .eyebrow{color:var(--gold3)}
+.showcase-panel .section-h{color:#fff;margin-top:14px}
+.showcase-panel .lead{color:rgba(255,255,255,.55);margin-top:14px}
+.showcase-panel .btn{margin-top:32px;align-self:flex-start}
+.showcase-divider{border:none;border-top:1px solid rgba(255,255,255,.07);margin:0}
+@media(max-width:860px){
+  .showcase-inner{grid-template-columns:1fr}
+  .showcase-vis{position:relative;top:0;height:65vw;min-height:260px}
+  .showcase-panel{min-height:auto;padding:clamp(36px,8vw,60px) clamp(24px,6vw,48px)}
+}
 
 /* MARQUEE */
 .marquee{background:var(--ink2);overflow:hidden;border-top:1px solid rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.04);padding:15px 0}
