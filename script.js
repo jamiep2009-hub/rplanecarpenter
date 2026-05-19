@@ -176,10 +176,10 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
 
   // Stage timing table [inAt, fullAt, outAt, doneAt]
   var ST = [
-    [0,    0.06, 0.20, 0.26],
-    [0.22, 0.28, 0.44, 0.50],
-    [0.47, 0.53, 0.69, 0.75],
-    [0.72, 0.78, 0.93, 1.00],
+    [-0.01, 0,    0.20, 0.26],
+    [0.22,  0.28, 0.44, 0.50],
+    [0.47,  0.53, 0.69, 0.75],
+    [0.72,  0.78, 0.93, 1.00],
   ];
 
   // ── Hero parallax (LERP-smoothed) ─────────────────────────
