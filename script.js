@@ -136,7 +136,7 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
   });
 });
 
-// ── PREMIUM SCROLL ANIMATIONS ────────────────────────────────
+// ── HERO PARALLAX ─────────────────────────────────────────────
 (function () {
   if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
 
@@ -145,44 +145,14 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
 
   function lerp(a, b, t) { return a + (b - a) * t; }
 
-  // — Hero elements —
   var heroBg      = document.querySelector('.hero-bg');
   var heroCopyEl  = document.querySelector('.hero-copy');
   var heroStatsEl = document.querySelector('.hero-stats');
   var heroEl      = document.querySelector('.hero');
   var heroVig     = document.querySelector('.hero-vignette');
 
-  // — Story elements —
-  var storyEl     = document.getElementById('story');
-  var storyImg    = storyEl && storyEl.querySelector('.story-img');
-  var storyBg     = storyEl && storyEl.querySelector('.story-bg-blur');
-  var storyOv     = storyEl && storyEl.querySelector('.story-overlay');
-  var storyGlow   = storyEl && storyEl.querySelector('.story-glow');
-  var storyLab1   = storyEl && storyEl.querySelector('.s-label-1');
-  var storyLab2   = storyEl && storyEl.querySelector('.s-label-2');
-  var storyStages = storyEl ? Array.from(storyEl.querySelectorAll('.story-stage')) : [];
-  var storyProg   = storyEl && storyEl.querySelector('.story-progress-fill');
+  if (heroBg) heroBg.style.willChange = 'transform';
 
-  if (heroBg)   heroBg.style.willChange   = 'transform';
-  if (storyImg) storyImg.style.willChange = 'transform';
-
-  // Trapezoidal fade envelope: fade in [i→f], hold [f→o], fade out [o→d]
-  function env(p, i, f, o, d) {
-    if (p <= i || p >= d) return 0;
-    if (p < f) return (p - i) / (f - i);
-    if (p < o) return 1;
-    return 1 - (p - o) / (d - o);
-  }
-
-  // Stage timing table [inAt, fullAt, outAt, doneAt]
-  var ST = [
-    [-0.01, 0,    0.20, 0.26],
-    [0.22,  0.28, 0.44, 0.50],
-    [0.47,  0.53, 0.69, 0.75],
-    [0.72,  0.78, 0.93, 1.00],
-  ];
-
-  // ── Hero parallax (LERP-smoothed) ─────────────────────────
   function runHero() {
     if (!heroEl || !heroBg) return;
     var h = heroEl.offsetHeight;
@@ -216,45 +186,9 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
     }
   }
 
-  // ── Story section ─────────────────────────────────────────
-  function runStory() {
-    if (!storyEl || !storyImg) return;
-    var rect  = storyEl.getBoundingClientRect();
-    var total = storyEl.offsetHeight - window.innerHeight;
-    if (total <= 0) return;
-    var p = Math.max(0, Math.min(1, -rect.top / total));
-
-    storyImg.style.transform = [
-      'scale('       + (0.88 + p * 0.16).toFixed(4)                   + ')',
-      'perspective(1400px)',
-      'rotateY('     + (Math.sin(p * Math.PI) * 2.5).toFixed(3)       + 'deg)',
-      'rotateX('     + (Math.sin(p * Math.PI * 0.7) * 1.2).toFixed(3) + 'deg)',
-      'translateX('  + ((p - 0.5) * 22).toFixed(1)                    + 'px)',
-    ].join(' ');
-
-    if (storyOv)                 storyOv.style.opacity   = (0.60 - p * 0.36).toFixed(3);
-    if (storyBg && !isMobile)    storyBg.style.opacity   = (Math.min(p * 5, 1) * 0.22).toFixed(3);
-    if (storyGlow)               storyGlow.style.opacity = (Math.sin(p * Math.PI) * 0.85).toFixed(3);
-
-    var lop = env(p, 0.22, 0.30, 0.44, 0.51);
-    if (storyLab1) { storyLab1.style.opacity = lop.toFixed(3); storyLab1.style.transform = 'translateX(' + ((1 - lop) * -22).toFixed(1) + 'px)'; }
-    if (storyLab2) { storyLab2.style.opacity = lop.toFixed(3); storyLab2.style.transform = 'translateX(' + ((1 - lop) *  22).toFixed(1) + 'px)'; }
-
-    storyStages.forEach(function (stage, i) {
-      var t = ST[i]; if (!t) return;
-      var op = env(p, t[0], t[1], t[2], t[3]);
-      var ty = p < t[1] ? (1 - op) * 32 : -(1 - op) * 22;
-      stage.style.opacity   = op.toFixed(3);
-      stage.style.transform = 'translateY(' + ty.toFixed(1) + 'px)';
-    });
-
-    if (storyProg) storyProg.style.width = (p * 100).toFixed(1) + '%';
-  }
-
   function loop() {
     rawSy = window.pageYOffset;
     runHero();
-    runStory();
     rafId = requestAnimationFrame(loop);
   }
 
