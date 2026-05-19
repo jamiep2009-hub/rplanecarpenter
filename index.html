@@ -144,22 +144,15 @@
     <div class="section-head center reveal">
       <div class="eyebrow">The transformation</div>
       <h2>Before &amp; after</h2>
-      <p class="section-sub">Drag the slider to see the difference a little craftsmanship makes.</p>
     </div>
-    <div class="ba-slider reveal" id="baSlider" role="img" aria-label="Before and after kitchen comparison">
-      <div class="ba-after">
-        <img src="images/after.jpg" alt="Finished kitchen with oak worktops and handleless grey cabinets" draggable="false">
-        <span class="ba-label ba-label-after">After</span>
+    <div class="ba-toggle-wrap reveal">
+      <div class="ba-btns" role="group" aria-label="Toggle before or after view">
+        <button class="ba-btn" id="baBtnBefore" aria-pressed="false">Before</button>
+        <button class="ba-btn active" id="baBtnAfter"  aria-pressed="true">After</button>
       </div>
-      <div class="ba-before" id="baBefore">
-        <img src="images/before.jpg" alt="Empty room with bare plaster walls before kitchen installation" draggable="false">
-        <span class="ba-label ba-label-before">Before</span>
-      </div>
-      <div class="ba-handle" id="baHandle" role="slider" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" aria-label="Before/after divider" tabindex="0">
-        <div class="ba-line"></div>
-        <div class="ba-grip">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18l-6-6 6-6M15 6l6 6-6 6"/></svg>
-        </div>
+      <div class="ba-frame">
+        <img class="ba-img" id="baImgAfter"  src="images/after.jpg"  alt="Finished kitchen with oak worktops and handleless grey cabinets" loading="lazy">
+        <img class="ba-img ba-img-hidden" id="baImgBefore" src="images/before.jpg" alt="Empty room with bare plaster walls before kitchen installation" loading="lazy">
       </div>
     </div>
   </div>
