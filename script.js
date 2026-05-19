@@ -144,16 +144,43 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
   var isMobile = window.matchMedia('(max-width:768px)').matches;
   var sy = 0, ticking = false, rafId = null;
 
+  // — Hero elements —
   var heroBg      = document.querySelector('.hero-bg');
   var heroCopyEl  = document.querySelector('.hero-copy');
   var heroStatsEl = document.querySelector('.hero-stats');
   var heroEl      = document.querySelector('.hero');
-  var showcaseEl  = document.getElementById('showcase');
-  var showcaseImg = showcaseEl ? showcaseEl.querySelector('.showcase-img') : null;
 
-  if (heroBg)      heroBg.style.willChange     = 'transform';
-  if (showcaseImg) showcaseImg.style.willChange = 'transform';
+  // — Story elements —
+  var storyEl     = document.getElementById('story');
+  var storyImg    = storyEl && storyEl.querySelector('.story-img');
+  var storyBg     = storyEl && storyEl.querySelector('.story-bg-blur');
+  var storyOv     = storyEl && storyEl.querySelector('.story-overlay');
+  var storyGlow   = storyEl && storyEl.querySelector('.story-glow');
+  var storyLab1   = storyEl && storyEl.querySelector('.s-label-1');
+  var storyLab2   = storyEl && storyEl.querySelector('.s-label-2');
+  var storyStages = storyEl ? Array.from(storyEl.querySelectorAll('.story-stage')) : [];
+  var storyProg   = storyEl && storyEl.querySelector('.story-progress-fill');
 
+  if (heroBg)   heroBg.style.willChange   = 'transform';
+  if (storyImg) storyImg.style.willChange = 'transform';
+
+  // Trapezoidal fade envelope: fade in [i→f], hold [f→o], fade out [o→d]
+  function env(p, i, f, o, d) {
+    if (p <= i || p >= d) return 0;
+    if (p < f) return (p - i) / (f - i);
+    if (p < o) return 1;
+    return 1 - (p - o) / (d - o);
+  }
+
+  // Stage timing table [inAt, fullAt, outAt, doneAt]
+  var ST = [
+    [0,    0.06, 0.20, 0.26],  // Stage 1 — intro
+    [0.22, 0.28, 0.44, 0.50],  // Stage 2 — detail labels
+    [0.47, 0.53, 0.69, 0.75],  // Stage 3 — stats
+    [0.72, 0.78, 0.93, 1.00],  // Stage 4 — CTA
+  ];
+
+  // ── Hero parallax ─────────────────────────────────────────
   function runHero() {
     if (!heroEl || !heroBg) return;
     var h = heroEl.offsetHeight;
@@ -161,7 +188,7 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
     if (sy === 0) {
       heroBg.style.transform = '';
       if (!isMobile) {
-        if (heroCopyEl)  { heroCopyEl.style.opacity = '';  heroCopyEl.style.transform = ''; }
+        if (heroCopyEl)  { heroCopyEl.style.opacity  = ''; heroCopyEl.style.transform  = ''; }
         if (heroStatsEl) { heroStatsEl.style.opacity = ''; heroStatsEl.style.transform = ''; }
       }
       return;
@@ -169,27 +196,56 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
     var p = sy / h;
     heroBg.style.transform = 'scale(' + (1 + p * (isMobile ? 0.05 : 0.09)) + ') translateY(' + (p * (isMobile ? -18 : -38)) + 'px)';
     if (!isMobile) {
-      if (heroCopyEl) {
-        heroCopyEl.style.opacity   = String(Math.max(0, 1 - p * 2.4));
-        heroCopyEl.style.transform = 'translateY(' + (p * -72) + 'px)';
-      }
-      if (heroStatsEl) {
-        heroStatsEl.style.opacity   = String(Math.max(0, 1 - p * 2.8));
-        heroStatsEl.style.transform = 'translateY(' + (p * -44) + 'px)';
-      }
+      if (heroCopyEl)  { heroCopyEl.style.opacity  = String(Math.max(0, 1 - p * 2.4)); heroCopyEl.style.transform  = 'translateY(' + (p * -72) + 'px)'; }
+      if (heroStatsEl) { heroStatsEl.style.opacity = String(Math.max(0, 1 - p * 2.8)); heroStatsEl.style.transform = 'translateY(' + (p * -44) + 'px)'; }
     }
   }
 
-  function runShowcase() {
-    if (!showcaseEl || !showcaseImg || isMobile) return;
-    var rect  = showcaseEl.getBoundingClientRect();
-    var total = showcaseEl.offsetHeight - window.innerHeight;
+  // ── Story section ─────────────────────────────────────────
+  function runStory() {
+    if (!storyEl || !storyImg) return;
+    var rect  = storyEl.getBoundingClientRect();
+    var total = storyEl.offsetHeight - window.innerHeight;
     if (total <= 0) return;
-    var p   = Math.max(0, Math.min(1, -rect.top / total));
-    showcaseImg.style.transform = 'scale(' + (1 + p * 0.07) + ') rotate(' + ((p - 0.5) * 1.8) + 'deg)';
+    var p = Math.max(0, Math.min(1, -rect.top / total));
+
+    // Image: gentle zoom + 3D arc rotation + lateral drift
+    storyImg.style.transform = [
+      'scale('       + (0.88 + p * 0.16).toFixed(4)               + ')',
+      'perspective(1400px)',
+      'rotateY('     + (Math.sin(p * Math.PI) * 2.5).toFixed(3)   + 'deg)',
+      'rotateX('     + (Math.sin(p * Math.PI * 0.7) * 1.2).toFixed(3) + 'deg)',
+      'translateX('  + ((p - 0.5) * 22).toFixed(1)                + 'px)',
+    ].join(' ');
+
+    // Overlay lifts as story progresses (image brightens)
+    if (storyOv) storyOv.style.opacity = (0.60 - p * 0.36).toFixed(3);
+
+    // Blurred BG — desktop only, fades in early
+    if (storyBg && !isMobile) storyBg.style.opacity = (Math.min(p * 5, 1) * 0.22).toFixed(3);
+
+    // Gold glow — peaks at midpoint for warmth
+    if (storyGlow) storyGlow.style.opacity = (Math.sin(p * Math.PI) * 0.85).toFixed(3);
+
+    // Floating callout labels (only visible during stage 2)
+    var lop = env(p, 0.22, 0.30, 0.44, 0.51);
+    if (storyLab1) { storyLab1.style.opacity = lop.toFixed(3); storyLab1.style.transform = 'translateX(' + ((1 - lop) * -22).toFixed(1) + 'px)'; }
+    if (storyLab2) { storyLab2.style.opacity = lop.toFixed(3); storyLab2.style.transform = 'translateX(' + ((1 - lop) *  22).toFixed(1) + 'px)'; }
+
+    // Stages: fade + vertical drift in/out
+    storyStages.forEach(function (stage, i) {
+      var t = ST[i]; if (!t) return;
+      var op = env(p, t[0], t[1], t[2], t[3]);
+      var ty = p < t[1] ? (1 - op) * 32 : -(1 - op) * 22;
+      stage.style.opacity   = op.toFixed(3);
+      stage.style.transform = 'translateY(' + ty.toFixed(1) + 'px)';
+    });
+
+    // Progress indicator
+    if (storyProg) storyProg.style.width = (p * 100).toFixed(1) + '%';
   }
 
-  function onFrame() { runHero(); runShowcase(); ticking = false; }
+  function onFrame() { runHero(); runStory(); ticking = false; }
 
   window.addEventListener('scroll', function () {
     sy = window.pageYOffset;
