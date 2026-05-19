@@ -200,26 +200,103 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
   });
 }());
 
-// ── BEFORE / AFTER TOGGLE ─────────────────────────────────────
+// ── SHOWCASE COMPARISON SLIDER ─────────────────────────────────
 (function () {
-  var btnBefore = document.getElementById('baBtnBefore');
-  var btnAfter  = document.getElementById('baBtnAfter');
-  var imgBefore = document.getElementById('baImgBefore');
-  var imgAfter  = document.getElementById('baImgAfter');
-  if (!btnBefore || !btnAfter) return;
+  var comp    = document.getElementById('scComp');
+  var before  = document.getElementById('scBefore');
+  var divider = document.getElementById('scDivider');
+  var handle  = document.getElementById('scHandle');
+  var tagB    = document.getElementById('scTagB');
+  var tagA    = document.getElementById('scTagA');
+  var imgA    = document.getElementById('scImgAfter');
+  var imgB    = document.getElementById('scImgBefore');
+  var stage   = document.getElementById('scStage');
+  if (!comp || !before || !divider) return;
 
-  function show(which) {
-    var showBefore = which === 'before';
-    imgBefore.classList.toggle('ba-img-hidden', !showBefore);
-    imgAfter.classList.toggle('ba-img-hidden',   showBefore);
-    btnBefore.classList.toggle('active', showBefore);
-    btnAfter.classList.toggle('active',  !showBefore);
-    btnBefore.setAttribute('aria-pressed', String(showBefore));
-    btnAfter.setAttribute('aria-pressed',  String(!showBefore));
+  var reduced  = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var target   = reduced ? 50 : 20;
+  var current  = target;
+  var dragging = false;
+  var rafId    = null;
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function setPos(pct) {
+    before.style.clipPath = 'inset(0 ' + (100 - pct).toFixed(3) + '% 0 0)';
+    divider.style.left    = pct.toFixed(3) + '%';
+    if (handle) handle.setAttribute('aria-valuenow', Math.round(pct));
+    if (tagB) tagB.style.opacity = pct < 12 ? '0' : '1';
+    if (tagA) tagA.style.opacity = pct > 88 ? '0' : '1';
   }
 
-  btnBefore.addEventListener('click', function () { show('before'); });
-  btnAfter.addEventListener('click',  function () { show('after');  });
+  function tick() {
+    current = reduced ? target : lerp(current, target, 0.08);
+    setPos(current);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function getPct(e) {
+    var r = comp.getBoundingClientRect();
+    var x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    return Math.max(2, Math.min(98, x / r.width * 100));
+  }
+
+  comp.addEventListener('mousedown', function (e) { dragging = true; target = getPct(e); e.preventDefault(); });
+  window.addEventListener('mousemove', function (e) { if (dragging) target = getPct(e); });
+  window.addEventListener('mouseup', function () { dragging = false; });
+
+  comp.addEventListener('touchstart', function (e) { dragging = true; target = getPct(e); }, { passive: true });
+  window.addEventListener('touchmove', function (e) { if (dragging) target = getPct(e); }, { passive: true });
+  window.addEventListener('touchend', function () { dragging = false; });
+
+  if (handle) {
+    handle.addEventListener('keydown', function (e) {
+      var step = e.shiftKey ? 10 : 2;
+      if (e.key === 'ArrowLeft')  { target = Math.max(2,  target - step); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { target = Math.min(98, target + step); e.preventDefault(); }
+    });
+  }
+
+  [imgA, imgB].forEach(function (img) {
+    if (!img) return;
+    if (img.complete && img.naturalWidth) { img.classList.add('sc-loaded'); }
+    else { img.addEventListener('load', function () { img.classList.add('sc-loaded'); }); }
+  });
+
+  var scrollTick = false;
+  function onScroll() {
+    if (scrollTick || reduced) return;
+    scrollTick = true;
+    requestAnimationFrame(function () {
+      var r  = comp.getBoundingClientRect();
+      var vh = window.innerHeight;
+      var p  = Math.max(0, Math.min(1, (vh - r.top) / (vh + r.height)));
+      var ty = ((p - 0.5) * 36).toFixed(1);
+      if (imgA) imgA.style.transform = 'scale(1.08) translateY(' + ty + 'px)';
+      if (imgB) imgB.style.transform = 'scale(1.08) translateY(' + ty + 'px)';
+      scrollTick = false;
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  var entered = false;
+  var io = new IntersectionObserver(function (entries) {
+    if (entries[0].isIntersecting && !entered) {
+      entered = true;
+      if (stage) stage.classList.add('sc-in');
+      setTimeout(function () { target = 50; }, reduced ? 0 : 500);
+      io.disconnect();
+    }
+  }, { threshold: 0.2 });
+  io.observe(comp);
+
+  rafId = requestAnimationFrame(tick);
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { cancelAnimationFrame(rafId); rafId = null; }
+    else if (!rafId) { rafId = requestAnimationFrame(tick); }
+  });
 }());
 
 // ── SERVICE CARD TILT ─────────────────────────────────────────

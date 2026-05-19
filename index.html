@@ -139,20 +139,64 @@
   </div>
 </section>
 
-<section class="before-after" id="transformation">
+<section class="showcase" id="transformation">
+  <div class="sc-noise" aria-hidden="true"></div>
+
   <div class="wrap">
-    <div class="section-head center reveal">
-      <div class="eyebrow">The transformation</div>
-      <h2>Before &amp; after</h2>
-    </div>
-    <div class="ba-toggle-wrap reveal">
-      <div class="ba-btns" role="group" aria-label="Toggle before or after view">
-        <button class="ba-btn" id="baBtnBefore" aria-pressed="false">Before</button>
-        <button class="ba-btn active" id="baBtnAfter"  aria-pressed="true">After</button>
+    <header class="sc-head">
+      <p class="eyebrow reveal">The transformation</p>
+      <h2 class="sc-title reveal">From bare walls<br><em>to bespoke kitchen.</em></h2>
+      <p class="sc-desc reveal">A complete kitchen installation — from raw plaster and screeded floor to a precision-built space with solid oak worktops and handleless cabinetry. Every joint cut by hand, every surface finished to last.</p>
+    </header>
+  </div>
+
+  <div class="sc-stage" id="scStage">
+    <div class="sc-comp" id="scComp">
+
+      <div class="sc-layer sc-after">
+        <img src="images/after.jpg" alt="Completed bespoke kitchen with solid oak worktops" loading="lazy" id="scImgAfter">
       </div>
-      <div class="ba-frame">
-        <img class="ba-img" id="baImgAfter"  src="images/after.jpg"  alt="Finished kitchen with oak worktops and handleless grey cabinets" loading="lazy">
-        <img class="ba-img ba-img-hidden" id="baImgBefore" src="images/before.jpg" alt="Empty room with bare plaster walls before kitchen installation" loading="lazy">
+
+      <div class="sc-layer sc-before" id="scBefore">
+        <img src="images/before.jpg" alt="Empty room with bare plaster walls before kitchen installation" loading="lazy" id="scImgBefore">
+      </div>
+
+      <div class="sc-divider" id="scDivider">
+        <div class="sc-div-line"></div>
+        <div class="sc-div-handle" id="scHandle" role="slider" tabindex="0"
+             aria-label="Drag to compare before and after" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
+          <span class="sc-pulse" aria-hidden="true"></span>
+          <span class="sc-pulse sc-pulse-2" aria-hidden="true"></span>
+          <svg viewBox="0 0 28 28" fill="none" aria-hidden="true" class="sc-arrows">
+            <path d="M10 14H3M3 14l3.5-3.5M3 14l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 14h7M25 14l-3.5-3.5M25 14l-3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <span class="sc-tag sc-tag-b" id="scTagB">Before</span>
+      <span class="sc-tag sc-tag-a" id="scTagA">After</span>
+
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="sc-meta">
+      <div class="sc-meta-item reveal">
+        <div class="sc-meta-k">Project</div>
+        <div class="sc-meta-v">Full kitchen installation</div>
+      </div>
+      <div class="sc-meta-item reveal">
+        <div class="sc-meta-k">Materials</div>
+        <div class="sc-meta-v">Solid oak worktops · Handleless cabinetry · Induction hob · Undermount sink</div>
+      </div>
+      <div class="sc-meta-item reveal">
+        <div class="sc-meta-k">Timeline</div>
+        <div class="sc-meta-v">2 weeks</div>
+      </div>
+      <div class="sc-meta-item reveal">
+        <div class="sc-meta-k">Result</div>
+        <div class="sc-meta-v">Bare plaster to fully fitted — built to last a lifetime</div>
       </div>
     </div>
   </div>
