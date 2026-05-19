@@ -107,7 +107,6 @@ if (tg) {
   tileIO.observe(tg);
 }
 
-
 // ── MAGNETIC GALLERY HOVER ────────────────────────────────────────────────
 document.querySelectorAll('#tileGrid .tile').forEach(function(tile) {
   tile.addEventListener('mousemove', function(e) {
@@ -142,13 +141,16 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
   if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
 
   var isMobile = window.matchMedia('(max-width:768px)').matches;
-  var sy = 0, ticking = false, rafId = null;
+  var rawSy = 0, smHeroP = 0, rafId = null;
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
 
   // — Hero elements —
   var heroBg      = document.querySelector('.hero-bg');
   var heroCopyEl  = document.querySelector('.hero-copy');
   var heroStatsEl = document.querySelector('.hero-stats');
   var heroEl      = document.querySelector('.hero');
+  var heroVig     = document.querySelector('.hero-vignette');
 
   // — Story elements —
   var storyEl     = document.getElementById('story');
@@ -174,30 +176,43 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
 
   // Stage timing table [inAt, fullAt, outAt, doneAt]
   var ST = [
-    [0,    0.06, 0.20, 0.26],  // Stage 1 — intro
-    [0.22, 0.28, 0.44, 0.50],  // Stage 2 — detail labels
-    [0.47, 0.53, 0.69, 0.75],  // Stage 3 — stats
-    [0.72, 0.78, 0.93, 1.00],  // Stage 4 — CTA
+    [0,    0.06, 0.20, 0.26],
+    [0.22, 0.28, 0.44, 0.50],
+    [0.47, 0.53, 0.69, 0.75],
+    [0.72, 0.78, 0.93, 1.00],
   ];
 
-  // ── Hero parallax ─────────────────────────────────────────
+  // ── Hero parallax (LERP-smoothed) ─────────────────────────
   function runHero() {
     if (!heroEl || !heroBg) return;
     var h = heroEl.offsetHeight;
-    if (sy >= h) { heroBg.style.transform = ''; return; }
-    if (sy === 0) {
+    var rawP = Math.max(0, Math.min(1, rawSy / h));
+    smHeroP = lerp(smHeroP, rawP, 0.09);
+    var p = smHeroP;
+
+    if (rawSy >= h) {
       heroBg.style.transform = '';
-      if (!isMobile) {
-        if (heroCopyEl)  { heroCopyEl.style.opacity  = ''; heroCopyEl.style.transform  = ''; }
-        if (heroStatsEl) { heroStatsEl.style.opacity = ''; heroStatsEl.style.transform = ''; }
-      }
+      if (heroVig) heroVig.style.opacity = '0';
       return;
     }
-    var p = sy / h;
-    heroBg.style.transform = 'scale(' + (1 + p * (isMobile ? 0.05 : 0.09)) + ') translateY(' + (p * (isMobile ? -18 : -38)) + 'px)';
+
     if (!isMobile) {
-      if (heroCopyEl)  { heroCopyEl.style.opacity  = String(Math.max(0, 1 - p * 2.4)); heroCopyEl.style.transform  = 'translateY(' + (p * -72) + 'px)'; }
-      if (heroStatsEl) { heroStatsEl.style.opacity = String(Math.max(0, 1 - p * 2.8)); heroStatsEl.style.transform = 'translateY(' + (p * -44) + 'px)'; }
+      heroBg.style.transform = [
+        'perspective(1200px)',
+        'scale(' + (1 + p * 0.09).toFixed(4) + ')',
+        'translateY(' + (p * -44).toFixed(1) + 'px)',
+        'rotateZ(' + (p * 2.2).toFixed(3) + 'deg)',
+        'rotateX(' + (p * 0.9).toFixed(3) + 'deg)',
+      ].join(' ');
+      if (heroCopyEl)  { heroCopyEl.style.opacity  = String(Math.max(0, 1 - p * 2.4)); heroCopyEl.style.transform  = 'translateY(' + (p * -72).toFixed(1) + 'px)'; }
+      if (heroStatsEl) { heroStatsEl.style.opacity = String(Math.max(0, 1 - p * 2.8)); heroStatsEl.style.transform = 'translateY(' + (p * -44).toFixed(1) + 'px)'; }
+    } else {
+      heroBg.style.transform = 'scale(' + (1 + p * 0.05).toFixed(4) + ') translateY(' + (p * -18).toFixed(1) + 'px) rotateZ(' + (p * 0.8).toFixed(3) + 'deg)';
+    }
+
+    if (heroVig) {
+      heroVig.style.opacity  = (Math.sin(p * Math.PI) * 0.55).toFixed(3);
+      heroVig.style.transform = 'translate(' + (p * 20).toFixed(1) + 'px,' + (p * -12).toFixed(1) + 'px)';
     }
   }
 
@@ -209,30 +224,22 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
     if (total <= 0) return;
     var p = Math.max(0, Math.min(1, -rect.top / total));
 
-    // Image: gentle zoom + 3D arc rotation + lateral drift
     storyImg.style.transform = [
-      'scale('       + (0.88 + p * 0.16).toFixed(4)               + ')',
+      'scale('       + (0.88 + p * 0.16).toFixed(4)                   + ')',
       'perspective(1400px)',
-      'rotateY('     + (Math.sin(p * Math.PI) * 2.5).toFixed(3)   + 'deg)',
+      'rotateY('     + (Math.sin(p * Math.PI) * 2.5).toFixed(3)       + 'deg)',
       'rotateX('     + (Math.sin(p * Math.PI * 0.7) * 1.2).toFixed(3) + 'deg)',
-      'translateX('  + ((p - 0.5) * 22).toFixed(1)                + 'px)',
+      'translateX('  + ((p - 0.5) * 22).toFixed(1)                    + 'px)',
     ].join(' ');
 
-    // Overlay lifts as story progresses (image brightens)
-    if (storyOv) storyOv.style.opacity = (0.60 - p * 0.36).toFixed(3);
+    if (storyOv)                 storyOv.style.opacity   = (0.60 - p * 0.36).toFixed(3);
+    if (storyBg && !isMobile)    storyBg.style.opacity   = (Math.min(p * 5, 1) * 0.22).toFixed(3);
+    if (storyGlow)               storyGlow.style.opacity = (Math.sin(p * Math.PI) * 0.85).toFixed(3);
 
-    // Blurred BG — desktop only, fades in early
-    if (storyBg && !isMobile) storyBg.style.opacity = (Math.min(p * 5, 1) * 0.22).toFixed(3);
-
-    // Gold glow — peaks at midpoint for warmth
-    if (storyGlow) storyGlow.style.opacity = (Math.sin(p * Math.PI) * 0.85).toFixed(3);
-
-    // Floating callout labels (only visible during stage 2)
     var lop = env(p, 0.22, 0.30, 0.44, 0.51);
     if (storyLab1) { storyLab1.style.opacity = lop.toFixed(3); storyLab1.style.transform = 'translateX(' + ((1 - lop) * -22).toFixed(1) + 'px)'; }
     if (storyLab2) { storyLab2.style.opacity = lop.toFixed(3); storyLab2.style.transform = 'translateX(' + ((1 - lop) *  22).toFixed(1) + 'px)'; }
 
-    // Stages: fade + vertical drift in/out
     storyStages.forEach(function (stage, i) {
       var t = ST[i]; if (!t) return;
       var op = env(p, t[0], t[1], t[2], t[3]);
@@ -241,19 +248,21 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
       stage.style.transform = 'translateY(' + ty.toFixed(1) + 'px)';
     });
 
-    // Progress indicator
     if (storyProg) storyProg.style.width = (p * 100).toFixed(1) + '%';
   }
 
-  function onFrame() { runHero(); runStory(); ticking = false; }
+  function loop() {
+    rawSy = window.pageYOffset;
+    runHero();
+    runStory();
+    rafId = requestAnimationFrame(loop);
+  }
 
-  window.addEventListener('scroll', function () {
-    sy = window.pageYOffset;
-    if (!ticking) { rafId = requestAnimationFrame(onFrame); ticking = true; }
-  }, { passive: true });
+  rafId = requestAnimationFrame(loop);
 
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden && rafId) { cancelAnimationFrame(rafId); ticking = false; }
+    if (document.hidden) { cancelAnimationFrame(rafId); rafId = null; }
+    else if (!rafId)     { rafId = requestAnimationFrame(loop); }
   });
 }());
 
