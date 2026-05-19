@@ -1,161 +1,117 @@
 /* ============================================================
-   R. Plane Carpenter — Transformation Section (Option B)
-   Scroll-driven reveal. Replaces the original .showcase block.
-   Loads alongside style.css and header-v2.css.
+   R. Plane Carpenter — Before / After Drag Slider
    ============================================================ */
 
-/* Section fills the viewport — scroll is intercepted by JS, not by section height. */
-.tx {
+.ba-section {
+  background: #0a0806;
+  padding: 80px 0 100px;
+}
+
+.ba-section .section-head {
+  margin-bottom: 48px;
+}
+
+/* Slider container */
+.ba-slider {
   position: relative;
-  background: #0a0806;
-  height: 100vh;
-  overflow: visible;
-}
-
-/* Subtle warm radial behind the stage */
-.tx::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 60% 50% at 50% 40%, rgba(196,135,61,.06), transparent 65%);
-  pointer-events: none;
-}
-
-/* "Scroll to reveal" eyebrow at the top of the section */
-.tx-intro {
-  position: absolute; top: 0; left: 0; right: 0;
-  padding: 60px clamp(28px, 5vw, 68px) 0;
-  text-align: center; pointer-events: none; z-index: 10;
-}
-.tx-eyebrow {
-  display: inline-flex; align-items: center; gap: 12px;
-  font-size: 11px; font-weight: 500; letter-spacing: .28em;
-  text-transform: uppercase; color: #c4873d;
-  margin: 0;
-  transition: opacity .35s ease;
-}
-.tx-eyebrow::before,
-.tx-eyebrow::after {
-  content: ""; width: 24px; height: 1px; background: currentColor;
-}
-.tx.is-progressing .tx-eyebrow { opacity: 0; }
-
-/* Sticky inner stage — pinned to the viewport while the section scrolls past */
-.tx-sticky {
-  position: sticky; top: 0;
-  height: 100vh; min-height: 700px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 0;
-  padding: 60px clamp(28px, 5vw, 68px) 28px;
-}
-
-/* Image stage */
-.tx-stage {
-  position: relative; width: 100%; max-width: 1180px;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
   aspect-ratio: 16 / 10;
-  border-radius: 16px; overflow: hidden;
-  box-shadow: 0 80px 160px rgba(0, 0, 0, .7),
-              0 0 0 1px rgba(255, 255, 255, .05);
-  background: #0a0806;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: col-resize;
+  box-shadow: 0 60px 120px rgba(0, 0, 0, .65),
+              0 0 0 1px rgba(255, 255, 255, .06);
+  user-select: none;
+  -webkit-user-select: none;
 }
-.tx-stage img {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  will-change: transform, clip-path;
-}
-.tx-before { filter: saturate(.85); transform: scale(1.08); }
-.tx-after  { transform: scale(1.08); clip-path: inset(100% 0 0 0); }
 
-/* Travelling gold seam line */
-.tx-seam {
-  position: absolute; left: 0; right: 0;
-  top: 100%; height: 2px;
-  background: #c4873d;
-  box-shadow: 0 0 18px rgba(196,135,61,.7),
-              0 0 36px rgba(196,135,61,.35);
-  opacity: 0;
-  transition: opacity .25s ease;
-  z-index: 3; pointer-events: none;
-}
-.tx.is-progressing .tx-seam { opacity: 1; }
-
-/* Centred caption over the image */
-.tx-caption {
-  position: absolute; left: 0; right: 0; bottom: 36px;
-  text-align: center; color: #fff; padding: 0 40px;
-  z-index: 4; pointer-events: none;
-}
-.tx-title {
-  font-family: "Cormorant Garamond", serif;
-  font-size: clamp(2rem, 4.5vw, 3.6rem); font-weight: 400;
-  letter-spacing: -.02em; line-height: 1.05; margin: 0;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, .5);
-}
-.tx-sub {
-  margin: 14px 0 0;
-  font-size: 12px; letter-spacing: .22em;
-  text-transform: uppercase; color: #c4873d; font-weight: 600;
-}
-@keyframes tx-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: none; }
-}
-.tx-caption.tx-bump .tx-title,
-.tx-caption.tx-bump .tx-sub {
-  animation: tx-up .65s cubic-bezier(.22, .68, 0, 1.05) both;
-}
-.tx-caption.tx-bump .tx-sub { animation-delay: .08s; }
-
-/* Measure-tape progress bar */
-.tx-tape {
-  position: relative; height: 46px;
-  margin-top: 22px;
-  max-width: 1180px; width: 100%;
-  font-family: "Nunito", system-ui, sans-serif;
-}
-.tx-tape svg { display: block; width: 100%; height: 44px; }
-.tx-tape text {
-  fill: rgba(196,135,61,.5);
-  font-size: 9.5px; font-weight: 700; letter-spacing: .22em;
-  font-family: "Nunito", system-ui, sans-serif;
-  transition: fill .3s ease;
-}
-.tx-tape text.is-reached { fill: #e8c89a; }
-
-/* Travelling marker */
-.tx-marker {
-  position: absolute; top: -4px; left: 0;
-  transform: translateX(-50%);
+/* Both images fill the container identically so they stay aligned */
+.ba-before,
+.ba-after {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
   pointer-events: none;
-  transition: left .12s linear;
 }
-.tx-marker-dot {
-  width: 14px; height: 14px; border-radius: 999px;
+
+.ba-before { filter: saturate(.85); }
+
+/* After wrapper clips from the right to reveal the after image left-to-right */
+.ba-after-wrap {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 50% 0 0);
+  will-change: clip-path;
+}
+
+/* Gold divider line */
+.ba-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
   background: #c4873d;
-  box-shadow: 0 0 0 4px rgba(196,135,61,.22),
-              0 0 14px rgba(196,135,61,.6);
-}
-.tx-marker-stem {
-  position: absolute; top: 14px; left: 50%;
-  width: 1.5px; height: 22px; margin-left: -.75px;
-  background: linear-gradient(180deg, #c4873d, rgba(196,135,61,0));
+  box-shadow: 0 0 14px rgba(196, 135, 61, .65),
+              0 0 32px rgba(196, 135, 61, .3);
+  z-index: 4;
+  will-change: left;
 }
 
-/* Reduced motion — collapse to a side-by-side static view */
-@media (prefers-reduced-motion: reduce) {
-  .tx { height: auto; padding: 60px 0 80px; }
-  .tx-sticky { position: static; height: auto; min-height: 0; }
-  .tx-stage { aspect-ratio: 16 / 9; }
-  .tx-after { clip-path: inset(0); transform: none; }
-  .tx-before { display: none; }
-  .tx-seam, .tx-marker { display: none; }
+/* Circular drag handle */
+.ba-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #c4873d;
+  box-shadow: 0 0 0 5px rgba(196, 135, 61, .25),
+              0 4px 20px rgba(0, 0, 0, .4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease, box-shadow .15s ease;
 }
 
-/* Mobile tweaks */
+.ba-slider.is-dragging .ba-handle {
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 0 8px rgba(196, 135, 61, .2),
+              0 4px 24px rgba(0, 0, 0, .5);
+}
+
+/* Before / After labels */
+.ba-label {
+  position: absolute;
+  bottom: 24px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(10, 8, 6, .55);
+  padding: 6px 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 3;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.ba-label-before { right: 20px; }
+.ba-label-after  { left: 20px; }
+
+/* Mobile */
 @media (max-width: 720px) {
-  .tx { height: 100vh; }
-  .tx-sticky { padding: 80px 16px 24px; min-height: 0; }
-  .tx-stage { aspect-ratio: 4 / 5; }
-  .tx-title { font-size: 1.6rem; }
-  .tx-sub { font-size: 10px; }
-  .tx-tape { display: none; }   /* tape too cramped on small screens */
+  .ba-section { padding: 60px 0 72px; }
+  .ba-slider { aspect-ratio: 4 / 5; border-radius: 10px; }
+  .ba-handle { width: 40px; height: 40px; }
 }
