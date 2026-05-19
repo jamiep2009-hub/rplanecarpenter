@@ -153,6 +153,18 @@
   text-transform: uppercase; white-space: nowrap;
 }
 
+/* All-reviews footer button */
+.rv-footer {
+  position: relative;
+  margin-top: 48px;
+  text-align: center;
+}
+.rv-footer .btn svg {
+  width: 13px; height: 13px;
+  transition: transform .3s ease;
+}
+.rv-footer .btn:hover svg { transform: translateX(4px); }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .rv-spotlight { animation: none; opacity: .55; }
