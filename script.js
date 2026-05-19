@@ -200,6 +200,44 @@ document.querySelectorAll('#filterTabs .f-tab').forEach(function(btn) {
   });
 }());
 
+// ── BEFORE / AFTER SLIDER ─────────────────────────────────────
+(function () {
+  var slider  = document.getElementById('baSlider');
+  var before  = document.getElementById('baBefore');
+  var handle  = document.getElementById('baHandle');
+  if (!slider || !before || !handle) return;
+
+  function setPos(pct) {
+    pct = Math.max(2, Math.min(98, pct));
+    before.style.width  = pct + '%';
+    handle.style.left   = pct + '%';
+    handle.setAttribute('aria-valuenow', Math.round(pct));
+  }
+
+  function fromEvent(e) {
+    var r   = slider.getBoundingClientRect();
+    var raw = (e.touches ? e.touches[0].clientX : e.clientX);
+    return (raw - r.left) / r.width * 100;
+  }
+
+  var dragging = false;
+  slider.addEventListener('mousedown',  function (e) { dragging = true; setPos(fromEvent(e)); e.preventDefault(); });
+  window.addEventListener('mousemove',  function (e) { if (dragging) setPos(fromEvent(e)); });
+  window.addEventListener('mouseup',    function ()  { dragging = false; });
+  slider.addEventListener('touchstart', function (e) { dragging = true; setPos(fromEvent(e)); }, {passive:true});
+  window.addEventListener('touchmove',  function (e) { if (dragging) setPos(fromEvent(e)); }, {passive:true});
+  window.addEventListener('touchend',   function ()  { dragging = false; });
+
+  handle.addEventListener('keydown', function (e) {
+    var step = e.shiftKey ? 10 : 2;
+    var cur  = parseFloat(handle.style.left) || 50;
+    if (e.key === 'ArrowLeft')  { setPos(cur - step); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { setPos(cur + step); e.preventDefault(); }
+  });
+
+  setPos(50);
+}());
+
 // ── SERVICE CARD TILT ─────────────────────────────────────────
 if (!window.matchMedia('(hover:none)').matches) {
   document.querySelectorAll('.svc-card').forEach(function (card) {
