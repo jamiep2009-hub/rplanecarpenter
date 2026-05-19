@@ -4,11 +4,11 @@
    Loads alongside style.css and header-v2.css.
    ============================================================ */
 
-/* Tall sticky stage drives the scroll-progress reveal. */
+/* Section fills the viewport — scroll is intercepted by JS, not by section height. */
 .tx {
   position: relative;
   background: #0a0806;
-  height: 220vh;                /* gives ~120vh of scroll for the reveal */
+  height: 100vh;
   overflow: visible;
 }
 
@@ -152,7 +152,7 @@
 
 /* Mobile tweaks */
 @media (max-width: 720px) {
-  .tx { height: 200vh; }
+  .tx { height: 100vh; }
   .tx-sticky { padding: 80px 16px 24px; min-height: 0; }
   .tx-stage { aspect-ratio: 4 / 5; }
   .tx-title { font-size: 1.6rem; }
