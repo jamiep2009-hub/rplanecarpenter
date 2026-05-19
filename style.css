@@ -283,6 +283,11 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06)}
 .footer-inner a{color:rgba(255,255,255,.45);transition:color .25s}
 .footer-inner a:hover{color:var(--gold)}
 
+/* WHATSAPP FAB */
+.whatsapp-fab{position:fixed;bottom:24px;right:24px;z-index:300;width:58px;height:58px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 22px rgba(37,211,102,.45);transition:transform .3s var(--spring),box-shadow .3s;color:#fff}
+.whatsapp-fab:hover{transform:scale(1.12);box-shadow:0 8px 32px rgba(37,211,102,.62)}
+.whatsapp-fab svg{width:30px;height:30px}
+
 /* SCROLL REVEAL */
 .reveal,.reveal-left,.reveal-right,.reveal-scale{opacity:0;transition:opacity .85s var(--silk),transform .85s var(--silk)}
 .reveal{transform:translateY(30px)}
