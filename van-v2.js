@@ -1,9 +1,9 @@
 /* ============================================================
    R. Plane Carpenter — Interactive Van Showcase
-   Entrance reveal + gentle scroll parallax ("camera drifting
-   around the van"). Driven by a rAF LERP loop reading the
-   section's position relative to the viewport — no sticky
-   pinning, so it can't break under overflow-x:hidden.
+   Layered scroll sequence (drive-in, rotation swing, forward
+   zoom, light-sweep, headlight bloom) + pointer-driven 3D tilt.
+   One rAF LERP loop, no sticky/fixed pinning — robust under the
+   global overflow-x:hidden and smooth on mobile.
    ============================================================ */
 (function () {
   'use strict';
@@ -11,11 +11,14 @@
   var section = document.getElementById('van-showcase');
   if (!section) return;
 
+  var stage  = section.querySelector('.vsh-stage');
   var van    = section.querySelector('.vsh-van');
   var spot   = section.querySelector('.vsh-spot');
   var warm   = section.querySelector('.vsh-warm');
   var shadow = section.querySelector('.vsh-shadow');
   var dust   = section.querySelector('.vsh-dust');
+  var sheen  = section.querySelector('.vsh-sheen');
+  var lights = section.querySelector('.vsh-lights');
   if (!van) return;
 
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -23,7 +26,7 @@
   /* ---- floating dust ---- */
   if (dust && !reduced) {
     var frag = document.createDocumentFragment();
-    for (var i = 0; i < 16; i++) {
+    for (var i = 0; i < 18; i++) {
       var m = document.createElement('span');
       m.className = 'vsh-mote';
       m.style.left = (8 + Math.random() * 84) + '%';
@@ -43,69 +46,116 @@
     return;
   }
 
-  var revealed = false;   // set true once scrolled into view (entrance)
-  var rev = 0;            // eased entrance 0→1
-  var par = 0;            // eased parallax -1..1
-  var parTarget = 0;
+  function clamp (v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+  var revealed = false;
+  var rev = 0;                       // entrance 0→1
+  var par = 0, parTarget = 0;        // scroll pass -1..1 (eased)
+  var pX = 0, pY = 0;                // pointer target -1..1
+  var eX = 0, eY = 0;                // eased pointer
   var running = false;
 
   function computeParTarget () {
     var r  = section.getBoundingClientRect();
     var vh = window.innerHeight;
     var center = r.top + r.height / 2;
-    // 0 when the section is centred, negative below, positive above
-    parTarget = Math.max(-1, Math.min(1, (vh / 2 - center) / (vh / 2 + r.height / 2)));
+    parTarget = clamp((vh / 2 - center) / (vh / 2 + r.height / 2), -1, 1);
   }
 
   function apply () {
-    var ty    = (1 - rev) * 46;                 // rise in
-    var scale = 0.95 + rev * 0.05 + Math.abs(par) * 0.012;
-    var rotY  = par * -9;                        // camera pans as you scroll past
-    var rotX  = (1 - rev) * 4;
-    var tx    = par * 2.6;
+    // --- entrance ---
+    var ty      = (1 - rev) * 44;          // rise in
+    var txEnter = (1 - rev) * -16;         // drive in from the left
+    var rotXin  = (1 - rev) * 5;
+
+    // --- scroll pass ---
+    var rotYscroll = par * -15;            // swings as it passes through view
+    var txScroll   = par * 3.4;
+    var zoom       = (1 - Math.abs(par)) * 0.05;   // comes forward at centre
+
+    // --- pointer tilt ---
+    var rotYp = eX * 11;
+    var rotXp = -eY * 7;
+    var txP   = eX * 1.6;
+
+    var rotY  = rotYscroll + rotYp;
+    var rotX  = rotXin + rotXp;
+    var tx    = txEnter + txScroll + txP;
+    var scale = 0.95 + rev * 0.05 + zoom;
 
     van.style.opacity = rev.toFixed(3);
     van.style.transform =
       'translate3d(' + tx.toFixed(2) + '%, ' + ty.toFixed(1) + 'px, 0) ' +
-      'rotateY(' + rotY.toFixed(2) + 'deg) rotateX(' + rotX.toFixed(2) + 'deg) ' +
+      'rotateX(' + rotX.toFixed(2) + 'deg) rotateY(' + rotY.toFixed(2) + 'deg) ' +
       'scale(' + scale.toFixed(3) + ')';
 
+    // --- light-sweep across the bodywork ---
+    if (sheen) {
+      var sweep = ((par + 1) / 2) * 120 - 10 + eX * 18;   // travels with scroll + pointer
+      sheen.style.backgroundPosition = clamp(sweep, 0, 100).toFixed(1) + '% 0';
+      sheen.style.opacity = (rev * (0.32 + 0.28 * (1 - Math.abs(par)))).toFixed(3);
+    }
+
+    // --- headlights glow strongest when the van faces you (centred) ---
+    if (lights) {
+      lights.style.opacity = (rev * clamp(1 - Math.abs(par) * 1.25, 0, 1) * (0.7 + 0.3 * Math.abs(eX))).toFixed(3);
+    }
+
+    // --- ambient layers, parallaxed ---
     if (spot) {
       spot.style.opacity = (0.4 + rev * 0.22).toFixed(3);
       spot.style.transform =
-        'translate(-50%, -50%) translateY(' + (par * -14).toFixed(1) + 'px) scale(' + (0.95 + rev * 0.12).toFixed(3) + ')';
+        'translate(-50%, -50%) translate(' + (eX * 14).toFixed(1) + 'px, ' + (par * -14 + eY * 10).toFixed(1) + 'px) ' +
+        'scale(' + (0.95 + rev * 0.12).toFixed(3) + ')';
     }
     if (warm) {
-      // gentle warm bloom that strengthens as the van settles in view
       warm.style.opacity = (rev * 0.45 * (0.6 + 0.4 * (1 - Math.abs(par)))).toFixed(3);
       warm.style.transform = 'translate(-50%, -50%) scale(' + (0.9 + rev * 0.16).toFixed(3) + ')';
     }
     if (shadow) {
       shadow.style.opacity = (rev * 0.7).toFixed(3);
       shadow.style.transform =
-        'translateX(-50%) translateX(' + (tx * 0.6).toFixed(2) + '%) scaleX(' + (0.9 + rev * 0.12).toFixed(3) + ')';
+        'translateX(-50%) translateX(' + (tx * 0.55).toFixed(2) + '%) scaleX(' + (0.9 + rev * 0.12 + Math.abs(eX) * 0.04).toFixed(3) + ')';
     }
-    if (dust) dust.style.transform = 'translateY(' + (par * -18).toFixed(1) + 'px)';
+    if (dust) dust.style.transform = 'translate(' + (eX * -10).toFixed(1) + 'px, ' + (par * -18).toFixed(1) + 'px)';
   }
 
   function loop () {
     var revT = revealed ? 1 : 0;
     rev += (revT - rev) * 0.10;
     par += (parTarget - par) * 0.10;
+    eX  += (pX - eX) * 0.12;
+    eY  += (pY - eY) * 0.12;
     apply();
 
-    var settled = Math.abs(revT - rev) < 0.001 && Math.abs(parTarget - par) < 0.001;
-    if (settled) { running = false; return; }   // idle until next scroll
+    var settled =
+      Math.abs(revT - rev) < 0.001 &&
+      Math.abs(parTarget - par) < 0.001 &&
+      Math.abs(pX - eX) < 0.001 && Math.abs(pY - eY) < 0.001;
+    if (settled) { running = false; return; }
     requestAnimationFrame(loop);
   }
 
-  function kick () {
-    if (!running) { running = true; requestAnimationFrame(loop); }
+  function kick () { if (!running) { running = true; requestAnimationFrame(loop); } }
+
+  /* ---- pointer interactivity (mouse / touch / pen) ---- */
+  function onPointerMove (e) {
+    var r = stage.getBoundingClientRect();
+    pX = clamp(((e.clientX - r.left) / r.width) * 2 - 1, -1, 1);
+    pY = clamp(((e.clientY - r.top) / r.height) * 2 - 1, -1, 1);
+    kick();
+  }
+  function onPointerLeave () { pX = 0; pY = 0; kick(); }
+
+  if (stage) {
+    stage.addEventListener('pointermove',  onPointerMove,  { passive: true });
+    stage.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    stage.addEventListener('pointercancel', onPointerLeave, { passive: true });
   }
 
+  /* ---- scroll + reveal ---- */
   function onScroll () { computeParTarget(); kick(); }
 
-  // Reveal entrance when the section comes into view; keep parallax live while visible
   var io = new IntersectionObserver(function (entries) {
     if (entries[0].isIntersecting) {
       revealed = true;

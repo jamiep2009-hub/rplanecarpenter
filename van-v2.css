@@ -134,6 +134,46 @@
 }
 .vsh-van img { width: 100%; height: auto; display: block; }
 
+/* Headlight bloom at the front of the van */
+.vsh-lights {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0;
+  will-change: opacity;
+}
+.vsh-lights::before,
+.vsh-lights::after {
+  content: ""; position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,242,210,.95) 0%, rgba(255,214,140,.4) 38%, transparent 70%);
+  filter: blur(2px);
+}
+.vsh-lights::before { left: 88%; top: 47%; width: 11%; aspect-ratio: 1; transform: translate(-50%,-50%); }
+.vsh-lights::after  { left: 82%; top: 60%; width: 8%;  aspect-ratio: 1; transform: translate(-50%,-50%); opacity: .7; }
+
+/* Light-sweep sheen, masked to the van silhouette */
+.vsh-sheen {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background: linear-gradient(105deg,
+    transparent 40%, rgba(255,255,255,.55) 49%, rgba(255,255,255,.75) 50%, rgba(255,255,255,.55) 51%, transparent 60%);
+  background-size: 300% 100%;
+  background-position: 0% 0;
+  -webkit-mask-image: url("images/van.png?v=3");
+          mask-image: url("images/van.png?v=3");
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  mix-blend-mode: screen; opacity: 0;
+  will-change: background-position, opacity;
+}
+
+/* Interaction hint */
+.vsh-hint {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+  margin: 0; z-index: 5; pointer-events: none;
+  font-size: 10px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase;
+  color: rgba(232,200,154,.55);
+  opacity: 0; transition: opacity .6s ease .5s;
+}
+.vsh.is-in .vsh-hint { opacity: 1; }
+
 /* Dust field */
 .vsh-dust { position: absolute; inset: 0; z-index: 4; pointer-events: none; will-change: transform; }
 .vsh-mote {
@@ -152,7 +192,8 @@
 @media (prefers-reduced-motion: reduce) {
   .vsh-van { opacity: 1 !important; transform: none !important; }
   .vsh-copy > *, .vsh-cta { opacity: 1 !important; transform: none !important; }
-  .vsh-dust, .vsh-warm { display: none; }
+  .vsh-dust, .vsh-warm, .vsh-sheen, .vsh-hint { display: none; }
+  .vsh-lights { opacity: .7 !important; }
 }
 
 /* ---------- Mobile / tablet ---------- */
@@ -168,4 +209,5 @@
   .vsh-list { display: inline-block; text-align: left; margin-bottom: 26px; }
   .vsh-stage { min-height: 44vh; margin-top: 8px; }
   .vsh-van { width: min(98%, 560px); }
+  .vsh-hint { font-size: 9px; bottom: 6px; }
 }
