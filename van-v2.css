@@ -164,16 +164,6 @@
   will-change: background-position, opacity;
 }
 
-/* Interaction hint */
-.vsh-hint {
-  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
-  margin: 0; z-index: 5; pointer-events: none;
-  font-size: 10px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase;
-  color: rgba(232,200,154,.55);
-  opacity: 0; transition: opacity .6s ease .5s;
-}
-.vsh.is-in .vsh-hint { opacity: 1; }
-
 /* Dust field */
 .vsh-dust { position: absolute; inset: 0; z-index: 4; pointer-events: none; will-change: transform; }
 .vsh-mote {
@@ -192,7 +182,7 @@
 @media (prefers-reduced-motion: reduce) {
   .vsh-van { opacity: 1 !important; transform: none !important; }
   .vsh-copy > *, .vsh-cta { opacity: 1 !important; transform: none !important; }
-  .vsh-dust, .vsh-warm, .vsh-sheen, .vsh-hint { display: none; }
+  .vsh-dust, .vsh-warm, .vsh-sheen { display: none; }
   .vsh-lights { opacity: .7 !important; }
 }
 
@@ -209,5 +199,4 @@
   .vsh-list { display: inline-block; text-align: left; margin-bottom: 26px; }
   .vsh-stage { min-height: 44vh; margin-top: 8px; }
   .vsh-van { width: min(98%, 560px); }
-  .vsh-hint { font-size: 9px; bottom: 6px; }
 }
