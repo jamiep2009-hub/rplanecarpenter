@@ -73,6 +73,8 @@
 .gx-grid.is-in .gx-tile:nth-child(6) { transition-delay: .4s; }
 .gx-grid.is-in .gx-tile:nth-child(7) { transition-delay: .47s; }
 .gx-grid.is-in .gx-tile:nth-child(8) { transition-delay: .54s; }
+.gx-grid.is-in .gx-tile:nth-child(9) { transition-delay: .61s; }
+.gx-grid.is-in .gx-tile:nth-child(10) { transition-delay: .68s; }
 
 /* Hover lift */
 .gx-tile:hover {
