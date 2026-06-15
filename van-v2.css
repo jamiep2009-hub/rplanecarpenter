@@ -1,80 +1,67 @@
 /* ============================================================
    R. Plane Carpenter — Interactive Van Showcase
-   Scroll-driven 2.5D showroom. Charcoal spotlight stage, layered
-   parallax, floating dust, GPU-accelerated 3D transforms.
+   Single-screen charcoal showroom. Entrance reveal + gentle
+   scroll parallax via GPU transforms. No sticky pinning (the
+   global overflow-x:hidden breaks position:sticky), so it stays
+   robust on every device.
    ============================================================ */
 
 .vsh {
   position: relative;
-  height: 260vh;                 /* scroll runway for the animation */
+  min-height: 100vh;
+  overflow: hidden;
   background: #0d0f12;
 }
 
-/* Sticky stage pinned while the section scrolls past */
-.vsh-sticky {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  min-height: 640px;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  align-items: center;
-  gap: clamp(24px, 4vw, 72px);
-  padding: 0 clamp(28px, 6vw, 96px);
-}
-
-/* Charcoal gradient backdrop */
-.vsh-sticky::before {
+/* Charcoal gradient + soft spotlight wash */
+.vsh::before {
   content: "";
   position: absolute; inset: 0;
-  background:
-    radial-gradient(120% 90% at 70% 38%, #23272d 0%, #14171b 42%, #0a0c0e 78%);
+  background: radial-gradient(120% 95% at 68% 42%, #23272d 0%, #14171b 44%, #0a0c0e 80%);
   z-index: 0;
 }
 
-/* ---------- LEFT: content ---------- */
-.vsh-copy {
+/* Layout container (was sticky — now a normal centred grid) */
+.vsh-sticky {
   position: relative;
-  z-index: 5;
-  color: #fff;
-  max-width: 460px;
+  z-index: 2;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 0.92fr 1.08fr;
+  align-items: center;
+  gap: clamp(24px, 4vw, 72px);
+  padding: clamp(96px, 12vh, 140px) clamp(28px, 6vw, 96px) clamp(60px, 8vh, 100px);
 }
+
+/* ---------- LEFT: content ---------- */
+.vsh-copy { position: relative; z-index: 5; color: #fff; max-width: 460px; }
 .vsh-eyebrow {
   display: inline-flex; align-items: center; gap: 12px;
   font-size: 11px; font-weight: 600; letter-spacing: .3em;
   text-transform: uppercase; color: #c4873d; margin: 0 0 22px;
 }
 .vsh-eyebrow::before { content: ""; width: 28px; height: 1px; background: currentColor; }
-
 .vsh-title {
   font-family: "Cormorant Garamond", serif;
   font-size: clamp(2.4rem, 4.4vw, 3.8rem);
-  font-weight: 400; line-height: 1.02; letter-spacing: -.02em;
-  margin: 0 0 8px;
+  font-weight: 400; line-height: 1.02; letter-spacing: -.02em; margin: 0 0 8px;
 }
 .vsh-title em { color: #c4873d; font-style: italic; font-weight: 300; }
-
 .vsh-sub {
   font-size: 13px; font-weight: 600; letter-spacing: .18em;
-  text-transform: uppercase; color: rgba(232,200,154,.85);
-  margin: 0 0 30px;
+  text-transform: uppercase; color: rgba(232,200,154,.85); margin: 0 0 30px;
 }
-
-/* Specialty list */
 .vsh-list { list-style: none; margin: 0 0 34px; padding: 0; }
 .vsh-list li {
-  display: flex; align-items: center; gap: 14px;
-  padding: 11px 0;
+  display: flex; align-items: center; gap: 14px; padding: 11px 0;
   border-top: 1px solid rgba(255,255,255,.08);
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(1.15rem, 1.8vw, 1.5rem);
-  color: rgba(255,255,255,.92);
+  font-size: clamp(1.15rem, 1.8vw, 1.5rem); color: rgba(255,255,255,.92);
 }
 .vsh-list li:last-child { border-bottom: 1px solid rgba(255,255,255,.08); }
 .vsh-list li svg { width: 16px; height: 16px; color: #c4873d; flex-shrink: 0; }
 
-/* CTA — fades in as the van settles (100% scroll) */
+/* CTA — fades in once the van has revealed */
 .vsh-cta {
   display: inline-flex; align-items: center; gap: 10px;
   padding: 15px 28px; border-radius: 999px;
@@ -82,90 +69,77 @@
   font-size: 11px; font-weight: 700; letter-spacing: .18em;
   text-transform: uppercase; text-decoration: none;
   opacity: 0; transform: translateY(14px);
-  transition: opacity .5s ease, transform .5s ease, box-shadow .3s ease;
-  will-change: opacity, transform;
+  transition: opacity .6s ease .2s, transform .6s ease .2s, box-shadow .3s ease;
 }
 .vsh-cta svg { width: 14px; height: 14px; transition: transform .3s ease; }
 .vsh-cta:hover { box-shadow: 0 12px 32px rgba(196,135,61,.35); }
 .vsh-cta:hover svg { transform: translateX(4px); }
-.vsh.is-settled .vsh-cta { opacity: 1; transform: none; }
+.vsh.is-in .vsh-cta { opacity: 1; transform: none; }
+
+/* Copy entrance */
+.vsh-copy > * { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+.vsh.is-in .vsh-copy > * { opacity: 1; transform: none; }
+.vsh.is-in .vsh-copy > *:nth-child(1) { transition-delay: .05s; }
+.vsh.is-in .vsh-copy > *:nth-child(2) { transition-delay: .12s; }
+.vsh.is-in .vsh-copy > *:nth-child(3) { transition-delay: .19s; }
+.vsh.is-in .vsh-copy > *:nth-child(4) { transition-delay: .26s; }
+.vsh.is-in .vsh-copy > .vsh-cta { transition-delay: 0s; }   /* keep CTA on its own timing */
 
 /* ---------- RIGHT: van stage ---------- */
 .vsh-stage {
-  position: relative;
-  z-index: 2;
-  height: 100%;
+  position: relative; z-index: 2; height: 100%;
+  min-height: 52vh;
   display: flex; align-items: center; justify-content: center;
-  perspective: 1500px;
-  perspective-origin: 60% 45%;
+  perspective: 1500px; perspective-origin: 60% 45%;
 }
 
 /* Spotlight beam behind the van */
 .vsh-spot {
-  position: absolute;
-  left: 50%; top: 44%;
-  width: 130%; aspect-ratio: 1;
+  position: absolute; left: 50%; top: 46%;
+  width: 128%; aspect-ratio: 1;
   transform: translate(-50%, -50%);
   background: radial-gradient(circle at center,
-    rgba(196,135,61,.30) 0%,
-    rgba(196,135,61,.10) 26%,
-    rgba(120,140,160,.05) 46%,
-    transparent 64%);
-  will-change: transform, opacity;
-  pointer-events: none;
-  z-index: 1;
+    rgba(196,135,61,.28) 0%, rgba(196,135,61,.09) 26%,
+    rgba(120,140,160,.045) 46%, transparent 64%);
+  will-change: transform, opacity; pointer-events: none; z-index: 1;
 }
 
-/* Warm "lighting change" overlay — cross-fades near 75% scroll */
+/* Warm lighting overlay */
 .vsh-warm {
-  position: absolute;
-  left: 50%; top: 42%;
-  width: 110%; aspect-ratio: 1;
+  position: absolute; left: 50%; top: 44%;
+  width: 108%; aspect-ratio: 1;
   transform: translate(-50%, -50%) scale(.9);
-  background: radial-gradient(circle at 42% 40%,
-    rgba(255,196,128,.22) 0%, rgba(255,170,90,.08) 34%, transparent 60%);
-  opacity: 0;
-  will-change: opacity, transform;
-  pointer-events: none;
-  z-index: 1;
+  background: radial-gradient(circle at 46% 42%,
+    rgba(255,196,128,.20) 0%, rgba(255,170,90,.07) 34%, transparent 60%);
+  opacity: 0; will-change: opacity, transform; pointer-events: none; z-index: 1;
 }
 
-/* Ground shadow ellipse */
+/* Ground shadow */
 .vsh-shadow {
-  position: absolute;
-  left: 50%; bottom: 16%;
-  width: 64%; height: 7%;
+  position: absolute; left: 50%; bottom: 14%;
+  width: 62%; height: 7%;
   transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, rgba(0,0,0,.62) 0%, rgba(0,0,0,.28) 45%, transparent 72%);
-  filter: blur(7px);
-  will-change: transform, opacity;
-  z-index: 2;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.6) 0%, rgba(0,0,0,.26) 45%, transparent 72%);
+  filter: blur(7px); will-change: transform, opacity; z-index: 2;
 }
 
-/* The van cutout — main 3D-transformed layer */
+/* Van cutout */
 .vsh-van {
-  position: relative;
-  z-index: 3;
-  width: min(94%, 720px);
+  position: relative; z-index: 3;
+  width: min(96%, 760px);
   transform-style: preserve-3d;
   will-change: transform, opacity;
-  filter: drop-shadow(0 30px 40px rgba(0,0,0,.45));
+  filter: drop-shadow(0 28px 38px rgba(0,0,0,.5));
+  opacity: 0;
 }
 .vsh-van img { width: 100%; height: auto; display: block; }
 
-/* Dust particle field */
-.vsh-dust {
-  position: absolute; inset: 0;
-  z-index: 4; pointer-events: none;
-  will-change: transform;
-}
+/* Dust field */
+.vsh-dust { position: absolute; inset: 0; z-index: 4; pointer-events: none; will-change: transform; }
 .vsh-mote {
-  position: absolute;
-  width: 3px; height: 3px; border-radius: 50%;
-  background: rgba(232,200,154,.55);
-  box-shadow: 0 0 6px rgba(232,200,154,.5);
-  animation: vsh-float linear infinite;
-  opacity: 0;
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: rgba(232,200,154,.55); box-shadow: 0 0 6px rgba(232,200,154,.5);
+  animation: vsh-float linear infinite; opacity: 0;
 }
 @keyframes vsh-float {
   0%   { opacity: 0; transform: translateY(14px) translateX(0) scale(.6); }
@@ -176,27 +150,22 @@
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .vsh { height: auto; }
-  .vsh-sticky { position: static; height: auto; min-height: 0; padding: 80px clamp(24px,6vw,96px); }
   .vsh-van { opacity: 1 !important; transform: none !important; }
+  .vsh-copy > *, .vsh-cta { opacity: 1 !important; transform: none !important; }
   .vsh-dust, .vsh-warm { display: none; }
-  .vsh-cta { opacity: 1; transform: none; }
 }
 
 /* ---------- Mobile / tablet ---------- */
 @media (max-width: 900px) {
-  .vsh { height: 220vh; }
+  .vsh { min-height: auto; }
   .vsh-sticky {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    align-content: center;
-    gap: 18px;
-    padding: 88px 22px 40px;
-    text-align: center;
+    align-content: center; gap: 8px;
+    padding: 110px 22px 56px; text-align: center;
   }
   .vsh-eyebrow { justify-content: center; }
   .vsh-copy { max-width: none; margin: 0 auto; }
-  .vsh-list { display: inline-block; text-align: left; }
-  .vsh-stage { min-height: 46vh; }
-  .vsh-van { width: min(96%, 540px); }
+  .vsh-list { display: inline-block; text-align: left; margin-bottom: 26px; }
+  .vsh-stage { min-height: 44vh; margin-top: 8px; }
+  .vsh-van { width: min(98%, 560px); }
 }
