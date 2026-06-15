@@ -324,6 +324,20 @@ if (formBtn) {
     var v = function(s) { return (w.querySelector(s) || {}).value || ''; };
     var sub  = encodeURIComponent('Carpentry enquiry — ' + v('input[type=text]'));
     var body = encodeURIComponent('Name: ' + v('input[type=text]') + '\nPhone: ' + v('input[type=tel]') + '\nEmail: ' + v('input[type=email]') + '\nProject: ' + v('select') + '\n\n' + v('textarea'));
+    if (typeof gtag === 'function') gtag('event', 'generate_lead', { event_category: 'contact_form', event_label: 'enquiry_submitted' });
     window.location.href = 'mailto:rplanecarpenter@hotmail.co.uk?subject=' + sub + '&body=' + body;
   });
 }
+
+/* ---- GA4 phone + email click tracking ---- */
+document.addEventListener('click', function (e) {
+  if (typeof gtag !== 'function') return;
+  var a = e.target.closest('a[href]');
+  if (!a) return;
+  var href = a.getAttribute('href') || '';
+  if (href.startsWith('tel:')) {
+    gtag('event', 'click', { event_category: 'contact', event_label: 'phone_click', value: href.replace('tel:', '') });
+  } else if (href.startsWith('mailto:')) {
+    gtag('event', 'click', { event_category: 'contact', event_label: 'email_click' });
+  }
+}, { passive: true });
