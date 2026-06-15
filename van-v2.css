@@ -1,0 +1,202 @@
+/* ============================================================
+   R. Plane Carpenter — Interactive Van Showcase
+   Scroll-driven 2.5D showroom. Charcoal spotlight stage, layered
+   parallax, floating dust, GPU-accelerated 3D transforms.
+   ============================================================ */
+
+.vsh {
+  position: relative;
+  height: 260vh;                 /* scroll runway for the animation */
+  background: #0d0f12;
+}
+
+/* Sticky stage pinned while the section scrolls past */
+.vsh-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  min-height: 640px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: center;
+  gap: clamp(24px, 4vw, 72px);
+  padding: 0 clamp(28px, 6vw, 96px);
+}
+
+/* Charcoal gradient backdrop */
+.vsh-sticky::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 90% at 70% 38%, #23272d 0%, #14171b 42%, #0a0c0e 78%);
+  z-index: 0;
+}
+
+/* ---------- LEFT: content ---------- */
+.vsh-copy {
+  position: relative;
+  z-index: 5;
+  color: #fff;
+  max-width: 460px;
+}
+.vsh-eyebrow {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-size: 11px; font-weight: 600; letter-spacing: .3em;
+  text-transform: uppercase; color: #c4873d; margin: 0 0 22px;
+}
+.vsh-eyebrow::before { content: ""; width: 28px; height: 1px; background: currentColor; }
+
+.vsh-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(2.4rem, 4.4vw, 3.8rem);
+  font-weight: 400; line-height: 1.02; letter-spacing: -.02em;
+  margin: 0 0 8px;
+}
+.vsh-title em { color: #c4873d; font-style: italic; font-weight: 300; }
+
+.vsh-sub {
+  font-size: 13px; font-weight: 600; letter-spacing: .18em;
+  text-transform: uppercase; color: rgba(232,200,154,.85);
+  margin: 0 0 30px;
+}
+
+/* Specialty list */
+.vsh-list { list-style: none; margin: 0 0 34px; padding: 0; }
+.vsh-list li {
+  display: flex; align-items: center; gap: 14px;
+  padding: 11px 0;
+  border-top: 1px solid rgba(255,255,255,.08);
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+  color: rgba(255,255,255,.92);
+}
+.vsh-list li:last-child { border-bottom: 1px solid rgba(255,255,255,.08); }
+.vsh-list li svg { width: 16px; height: 16px; color: #c4873d; flex-shrink: 0; }
+
+/* CTA — fades in as the van settles (100% scroll) */
+.vsh-cta {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 15px 28px; border-radius: 999px;
+  background: #c4873d; color: #1c1610;
+  font-size: 11px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; text-decoration: none;
+  opacity: 0; transform: translateY(14px);
+  transition: opacity .5s ease, transform .5s ease, box-shadow .3s ease;
+  will-change: opacity, transform;
+}
+.vsh-cta svg { width: 14px; height: 14px; transition: transform .3s ease; }
+.vsh-cta:hover { box-shadow: 0 12px 32px rgba(196,135,61,.35); }
+.vsh-cta:hover svg { transform: translateX(4px); }
+.vsh.is-settled .vsh-cta { opacity: 1; transform: none; }
+
+/* ---------- RIGHT: van stage ---------- */
+.vsh-stage {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  perspective: 1500px;
+  perspective-origin: 60% 45%;
+}
+
+/* Spotlight beam behind the van */
+.vsh-spot {
+  position: absolute;
+  left: 50%; top: 44%;
+  width: 130%; aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at center,
+    rgba(196,135,61,.30) 0%,
+    rgba(196,135,61,.10) 26%,
+    rgba(120,140,160,.05) 46%,
+    transparent 64%);
+  will-change: transform, opacity;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Warm "lighting change" overlay — cross-fades near 75% scroll */
+.vsh-warm {
+  position: absolute;
+  left: 50%; top: 42%;
+  width: 110%; aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(.9);
+  background: radial-gradient(circle at 42% 40%,
+    rgba(255,196,128,.22) 0%, rgba(255,170,90,.08) 34%, transparent 60%);
+  opacity: 0;
+  will-change: opacity, transform;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ground shadow ellipse */
+.vsh-shadow {
+  position: absolute;
+  left: 50%; bottom: 16%;
+  width: 64%; height: 7%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.62) 0%, rgba(0,0,0,.28) 45%, transparent 72%);
+  filter: blur(7px);
+  will-change: transform, opacity;
+  z-index: 2;
+}
+
+/* The van cutout — main 3D-transformed layer */
+.vsh-van {
+  position: relative;
+  z-index: 3;
+  width: min(94%, 720px);
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 30px 40px rgba(0,0,0,.45));
+}
+.vsh-van img { width: 100%; height: auto; display: block; }
+
+/* Dust particle field */
+.vsh-dust {
+  position: absolute; inset: 0;
+  z-index: 4; pointer-events: none;
+  will-change: transform;
+}
+.vsh-mote {
+  position: absolute;
+  width: 3px; height: 3px; border-radius: 50%;
+  background: rgba(232,200,154,.55);
+  box-shadow: 0 0 6px rgba(232,200,154,.5);
+  animation: vsh-float linear infinite;
+  opacity: 0;
+}
+@keyframes vsh-float {
+  0%   { opacity: 0; transform: translateY(14px) translateX(0) scale(.6); }
+  15%  { opacity: .8; }
+  85%  { opacity: .7; }
+  100% { opacity: 0; transform: translateY(-46px) translateX(12px) scale(1); }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .vsh { height: auto; }
+  .vsh-sticky { position: static; height: auto; min-height: 0; padding: 80px clamp(24px,6vw,96px); }
+  .vsh-van { opacity: 1 !important; transform: none !important; }
+  .vsh-dust, .vsh-warm { display: none; }
+  .vsh-cta { opacity: 1; transform: none; }
+}
+
+/* ---------- Mobile / tablet ---------- */
+@media (max-width: 900px) {
+  .vsh { height: 220vh; }
+  .vsh-sticky {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    align-content: center;
+    gap: 18px;
+    padding: 88px 22px 40px;
+    text-align: center;
+  }
+  .vsh-eyebrow { justify-content: center; }
+  .vsh-copy { max-width: none; margin: 0 auto; }
+  .vsh-list { display: inline-block; text-align: left; }
+  .vsh-stage { min-height: 46vh; }
+  .vsh-van { width: min(96%, 540px); }
+}
