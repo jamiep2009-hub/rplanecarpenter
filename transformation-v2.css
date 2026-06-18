@@ -1,5 +1,8 @@
 /* ============================================================
    R. Plane Carpenter — Before / After Drag Slider
+   Premium build: ambient glow frame, frosted depth handle,
+   animated scroll reveal, drag-hint pulse, position-aware
+   labels and blur-up image loading.
    ============================================================ */
 
 .ba-section {
@@ -11,7 +14,8 @@
   margin-bottom: 48px;
 }
 
-/* Slider container — portrait, sized for upright phone photos */
+/* Slider container — portrait, sized for upright phone photos.
+   Warm hairline frame + soft gold ambient glow on the charcoal. */
 .ba-slider {
   position: relative;
   width: 100%;
@@ -21,14 +25,18 @@
   border-radius: 16px;
   overflow: hidden;
   cursor: col-resize;
-  box-shadow: 0 60px 120px rgba(0, 0, 0, .65),
-              0 0 0 1px rgba(255, 255, 255, .06);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 44px 110px rgba(0, 0, 0, .62),
+              0 0 0 1px rgba(196, 135, 61, .28),
+              0 0 90px rgba(196, 135, 61, .10);
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
 }
 
-/* Both images fill the container identically so they stay aligned */
+/* Both images fill the container identically so they stay aligned.
+   Start hidden for the blur-up fade-in. */
 .ba-before,
 .ba-after {
   position: absolute;
@@ -38,34 +46,45 @@
   object-fit: cover;
   display: block;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity .7s ease;
 }
+.ba-before.is-loaded,
+.ba-after.is-loaded { opacity: 1; }
 
 .ba-before { filter: saturate(.85); }
+.ba-before.is-loaded { opacity: 1; }
 
-/* After wrapper clips from the right to reveal the after image left-to-right */
+/* After wrapper clips from the right to reveal the after image
+   left-to-right. Carries its own blur-up placeholder. */
 .ba-after-wrap {
   position: absolute;
   inset: 0;
   clip-path: inset(0 50% 0 0);
   will-change: clip-path;
+  background-size: cover;
+  background-position: center;
 }
 
-/* Gold divider line */
+/* Gold divider line — glossy vertical gradient + glow */
 .ba-divider {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 2px;
-  margin-left: -1px;
-  background: #c4873d;
+  width: 3px;
+  margin-left: -1.5px;
+  background: linear-gradient(to bottom,
+              rgba(232, 200, 154, .95), #c4873d 50%, rgba(232, 200, 154, .95));
   box-shadow: 0 0 14px rgba(196, 135, 61, .65),
-              0 0 32px rgba(196, 135, 61, .3);
+              0 0 34px rgba(196, 135, 61, .32),
+              0 0 0 .5px rgba(255, 255, 255, .25) inset;
   z-index: 4;
   will-change: left;
 }
 
-/* Circular drag handle */
+/* Circular drag handle — frosted halo (::before) behind a glossy
+   gold core (::after), with the chevrons (svg) on top. */
 .ba-handle {
   position: absolute;
   top: 50%;
@@ -74,22 +93,56 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #c4873d;
-  box-shadow: 0 0 0 5px rgba(196, 135, 61, .25),
-              0 4px 20px rgba(0, 0, 0, .4);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform .15s ease, box-shadow .15s ease;
+  cursor: grab;
+  transition: transform .15s ease;
+}
+.ba-handle::before {                 /* frosted glass halo */
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(255, 255, 255, .2);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 0;
+  transition: background .2s ease, border-color .2s ease;
+}
+.ba-handle::after {                  /* glossy gold core */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(150deg, #e6ad5e, #c4873d 55%, #9f6a27);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .3) inset,
+              0 6px 22px rgba(0, 0, 0, .5),
+              0 0 22px rgba(196, 135, 61, .5);
+  z-index: 1;
+}
+.ba-handle svg { position: relative; z-index: 2; }
+
+.ba-slider.is-dragging .ba-handle { transform: translate(-50%, -50%) scale(1.1); cursor: grabbing; }
+
+/* Keyboard focus ring */
+.ba-handle:focus-visible { outline: none; }
+.ba-handle:focus-visible::before {
+  background: rgba(255, 255, 255, .16);
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .35);
 }
 
-.ba-slider.is-dragging .ba-handle {
-  transform: translate(-50%, -50%) scale(1.1);
-  box-shadow: 0 0 0 8px rgba(196, 135, 61, .2),
-              0 4px 24px rgba(0, 0, 0, .5);
+/* One-shot "drag me" pulse when the slider first reveals */
+.ba-slider.is-revealed .ba-handle::after { animation: ba-pulse 1.5s ease-out 2; }
+@keyframes ba-pulse {
+  0%   { box-shadow: 0 0 0 1px rgba(255,255,255,.3) inset, 0 6px 22px rgba(0,0,0,.5), 0 0 22px rgba(196,135,61,.5), 0 0 0 0 rgba(196,135,61,.6); }
+  70%  { box-shadow: 0 0 0 1px rgba(255,255,255,.3) inset, 0 6px 22px rgba(0,0,0,.5), 0 0 22px rgba(196,135,61,.5), 0 0 0 18px rgba(196,135,61,0); }
+  100% { box-shadow: 0 0 0 1px rgba(255,255,255,.3) inset, 0 6px 22px rgba(0,0,0,.5), 0 0 22px rgba(196,135,61,.5), 0 0 0 0 rgba(196,135,61,0); }
 }
 
-/* Before / After labels */
+/* Before / After labels — fade out as the divider sweeps past them */
 .ba-label {
   position: absolute;
   bottom: 24px;
@@ -105,10 +158,22 @@
   z-index: 3;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  transition: opacity .25s ease;
 }
 
 .ba-label-before { right: 20px; }
 .ba-label-after  { left: 20px; }
+
+/* One-line outcome caption under a slider */
+.ba-caption {
+  text-align: center;
+  margin: 24px auto 0;
+  max-width: 620px;
+  color: rgba(255, 255, 255, .62);
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+.ba-caption b { color: #e8c89a; font-weight: 600; }
 
 /* ------------------------------------------------------------
    Larger showcase variant — used for the dedicated Before &
@@ -150,6 +215,13 @@
 
 /* Bigger slider inside the showcase */
 .ba-section--lg .ba-slider { max-width: 820px; }
+.ba-section--lg .ba-caption { max-width: 820px; }
+
+/* Reduced motion — no sweep, pulse or fade-in */
+@media (prefers-reduced-motion: reduce) {
+  .ba-before, .ba-after { opacity: 1 !important; transition: none; }
+  .ba-slider.is-revealed .ba-handle::after { animation: none; }
+}
 
 /* Mobile */
 @media (max-width: 720px) {

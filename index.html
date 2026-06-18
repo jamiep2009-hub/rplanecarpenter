@@ -22,7 +22,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="header-v2.css">
-<link rel="stylesheet" href="transformation-v2.css?v=3">
+<link rel="stylesheet" href="transformation-v2.css?v=5">
 <link rel="stylesheet" href="photos-v2.css?v=2">
 <link rel="stylesheet" href="reviews-v2.css">
 </head>
@@ -227,17 +227,19 @@
       <h2 class="section-h">Bare room to<br><em>bespoke utility</em></h2>
       <p class="lead">Drag the handle to reveal the transformation.</p>
     </div>
-    <div class="ba-slider" id="baSlider">
+    <div class="ba-slider" id="baSlider" style="background-image:url('images/before-lqip.jpg')">
       <img class="ba-before" src="images/before.jpg"
            alt="Utility room mid-renovation with exposed plumbing, hot water cylinder and bare walls"
-           draggable="false" loading="lazy" width="1080" height="1440">
-      <div class="ba-after-wrap" id="baAfterWrap">
+           draggable="false" loading="lazy" decoding="async" width="1080" height="1440">
+      <div class="ba-after-wrap" id="baAfterWrap" style="background-image:url('images/after-lqip.jpg')">
         <img class="ba-after" src="images/after.jpg"
              alt="Finished olive-green fitted utility room with Belfast sink and integrated washing machine"
-             draggable="false" loading="lazy" width="1080" height="1440">
+             draggable="false" loading="lazy" decoding="async" width="1080" height="1440">
       </div>
-      <div class="ba-divider" id="baDivider" aria-hidden="true">
-        <div class="ba-handle">
+      <div class="ba-divider" id="baDivider">
+        <div class="ba-handle" role="slider" tabindex="0"
+             aria-label="Drag to compare before and after"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
             <path d="M8 11L3 6M8 11L3 16M14 11L19 6M14 11L19 16" stroke="#0a0806" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -246,6 +248,7 @@
       <span class="ba-label ba-label-before" aria-hidden="true">Before</span>
       <span class="ba-label ba-label-after" aria-hidden="true">After</span>
     </div>
+    <p class="ba-caption reveal">Utility room &middot; bespoke olive-green cabinetry &middot; <b>Belfast sink &amp; integrated appliances</b></p>
     <div class="gallery-cta reveal">
       <a href="gallery.html#before-after" class="btn btn-gold-outline">View more <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
     </div>
@@ -449,7 +452,7 @@
 </a>
 <script src="script.js"></script>
 <script src="header-v2.js"></script>
-<script src="transformation-v2.js?v=4"></script>
+<script src="transformation-v2.js?v=5"></script>
 <script src="photos-v2.js"></script>
 <script src="reviews-v2.js"></script>
 </body>
