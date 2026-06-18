@@ -110,9 +110,53 @@
 .ba-label-before { right: 20px; }
 .ba-label-after  { left: 20px; }
 
+/* ------------------------------------------------------------
+   Larger showcase variant — used for the dedicated Before &
+   After gallery (multiple transformations, bigger sliders).
+   ------------------------------------------------------------ */
+.ba-section--lg { padding: 100px 0 120px; }
+.ba-section--lg .section-head { margin-bottom: 56px; }
+
+.ba-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.ba-pair-head {
+  text-align: center;
+  margin-bottom: 22px;
+}
+.ba-pair-head .ba-pair-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: #c4873d;
+  margin-bottom: 10px;
+}
+.ba-pair-head .ba-pair-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.15;
+  color: #fff;
+  margin: 0;
+}
+
+/* Bigger slider inside the showcase */
+.ba-section--lg .ba-slider { max-width: 820px; }
+
 /* Mobile */
 @media (max-width: 720px) {
   .ba-section { padding: 60px 0 72px; }
   .ba-slider { max-width: 92vw; aspect-ratio: 3 / 4; border-radius: 10px; }
   .ba-handle { width: 40px; height: 40px; }
+  .ba-section--lg { padding: 64px 0 80px; }
+  .ba-gallery { gap: 52px; padding: 0; }
+  .ba-section--lg .ba-slider { max-width: 92vw; }
 }
