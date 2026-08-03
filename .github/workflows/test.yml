@@ -1,13 +1,10 @@
-name: Test website editor
+name: Test editor
 
-# Cloudflare deploys the editor itself (connected directly to this repo),
-# so this workflow only guards quality: if the safety tests fail, the
-# failure is visible here before anything reaches the live editor.
-# No secrets and no setup required.
+# No secrets, no setup. Runs the safety suite so a change that would
+# break the website is caught before anyone opens the editor.
 on:
   push:
     branches: [main]
-    paths: ['_admin/**', 'index.html', 'about.html', 'services.html', 'gallery.html', 'contact.html', 'privacy-policy.html', 'reviews-v2.js']
   pull_request:
   workflow_dispatch:
 
@@ -19,6 +16,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Run safety tests
-        working-directory: _admin
-        run: node test/run.mjs
+      - run: node admin/test/run.mjs

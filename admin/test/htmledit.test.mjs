@@ -13,7 +13,7 @@ import {
   locateAll, locateOne, readInner, replaceInner, replaceOuter,
   readAttr, setAttr, htmlToText, textToHtml, escapeHtml, scanTags,
   readPath, replacePath, readAttrPath, setAttrPath,
-} from '../src/htmledit.js';
+} from '../htmledit.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SITE = join(HERE, '..', '..');

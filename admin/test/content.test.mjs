@@ -15,9 +15,9 @@ import {
   readBento, writeBento, readBeforeAfter, writeBeforeAfter,
   readReviews, writeReviews, writeReviewsIntoHome,
   parseHeading, renderHeading, phoneForms, readContact,
-} from '../src/content.js';
-import { EDITABLE_FILES, TEXT_FIELDS } from '../src/schema.js';
-import { locateAll, readPath } from '../src/htmledit.js';
+} from '../content.js';
+import { EDITABLE_FILES, TEXT_FIELDS } from '../schema.js';
+import { locateAll, readPath } from '../htmledit.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SITE = join(HERE, '..', '..');

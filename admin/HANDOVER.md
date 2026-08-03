@@ -7,9 +7,7 @@ reviews and update your phone number. No technical knowledge needed.
 
 ## Getting in
 
-1. Open the editor link you were sent
-2. Enter your password
-3. That's it — you'll stay signed in for 12 hours
+Go to **rplanecarpenter.co.uk/admin/** — you're already signed in.
 
 **Put it on your phone's home screen** so it's one tap away:
 
@@ -154,8 +152,9 @@ No. Take them on your phone and upload them as they are.
 Give it a minute, then refresh the page. If you're on the site already,
 pull down to refresh.
 
-**I've forgotten my password.**
-Get in touch with whoever set this up — it can be reset in a minute.
+**It's asking me for an "access key".**
+That happens if your phone cleared its browsing data. Get in touch with
+whoever set this up — it takes a minute to put back.
 
 **Does it cost anything to run?**
 No. There's nothing to subscribe to and no bill.

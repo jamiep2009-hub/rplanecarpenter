@@ -1,6 +1,10 @@
 /* ============================================================
    github.js — the only thing that writes to the repository.
 
+   Runs in the browser: GitHub's REST API allows cross-origin
+   requests, so the editor talks to it directly and needs no
+   server of its own.
+
    All the site edits in one save become ONE commit, built with
    the Git Data API (blobs -> tree -> commit -> ref). That matters:
    the site is never briefly half-updated, and "undo" is exactly
@@ -13,13 +17,12 @@ const API = 'https://api.github.com';
 const COMMIT_PREFIX = 'Website edit';
 
 export class GitHub {
-  constructor ({ token, owner, repo, branch = 'main', userAgent = 'rpc-admin' }) {
-    if (!token) throw new Error('GitHub token is not configured.');
+  constructor ({ token, owner, repo, branch = 'main' }) {
+    if (!token) throw new Error('No access key has been set up yet.');
     this.token = token;
     this.owner = owner;
     this.repo = repo;
     this.branch = branch;
-    this.userAgent = userAgent;
   }
 
   get base () { return `${API}/repos/${this.owner}/${this.repo}`; }
@@ -31,7 +34,6 @@ export class GitHub {
         'Authorization': `Bearer ${this.token}`,
         'Accept': 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': this.userAgent,
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...options.headers,
       },
@@ -45,14 +47,23 @@ export class GitHub {
         if (res.headers.get('X-RateLimit-Remaining') === '0') {
           throw new Error('GitHub rate limit reached. Please try again in a few minutes.');
         }
-        throw new Error('The website connection is not authorised. The access token may have expired.');
+        throw new Error('Your access key is not valid any more. It may have expired or been removed.');
       }
-      if (res.status === 404) throw new Error('The website repository could not be found.');
+      if (res.status === 404) throw new Error('Could not reach the website files. Check the access key has permission for this repository.');
       if (res.status === 409) throw new Error('Someone else changed the site at the same time. Please reload and try again.');
       throw new Error(`GitHub error ${res.status}${detail ? ': ' + detail : ''}`);
     }
 
     return res.status === 204 ? null : res.json();
+  }
+
+  /** Confirm the key works and can write, before we store it. */
+  async checkAccess () {
+    const repo = await this.call('');
+    if (!repo.permissions || !repo.permissions.push) {
+      throw new Error('That key can read the website but not save changes. It needs Contents: Read and write.');
+    }
+    return { name: repo.full_name, branch: repo.default_branch };
   }
 
   /* ---------- reading ---------- */
