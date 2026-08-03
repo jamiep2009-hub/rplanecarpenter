@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  hashPassword, verifyPassword, createToken, verifyToken,
+  verifyPassword, createToken, verifyToken, sessionSecret,
   sessionCookie, clearCookie, readCookie, sameOrigin,
   throttleCheck, throttleFail, throttleReset,
 } from '../src/auth.js';
@@ -23,17 +23,28 @@ const eq = (n, a, b) => ok(n, a === b, a === b ? '' : `expected ${JSON.stringify
 
 {
   const pw = 'a-properly-long-password';
-  const { hash, salt } = await hashPassword(pw);
 
-  ok('password: correct accepted', await verifyPassword(pw, hash, salt));
-  ok('password: wrong rejected', !(await verifyPassword('nope-nope-nope', hash, salt)));
-  ok('password: near-miss rejected', !(await verifyPassword(pw + 'x', hash, salt)));
-  ok('password: unconfigured rejected', !(await verifyPassword(pw, null, null)));
-  ok('password: hash is not the password', !hash.includes(pw));
+  ok('password: correct accepted', await verifyPassword(pw, pw));
+  ok('password: wrong rejected', !(await verifyPassword('nope-nope-nope', pw)));
+  ok('password: near-miss rejected', !(await verifyPassword(pw + 'x', pw)));
+  ok('password: unconfigured rejected', !(await verifyPassword(pw, null)));
+  ok('password: empty attempt rejected', !(await verifyPassword('', pw)));
+  ok('password: differing lengths rejected', !(await verifyPassword('short', pw)));
+}
 
-  const again = await hashPassword(pw);
-  ok('password: salt is random per call', again.salt !== salt);
-  ok('password: same salt reproduces the hash', (await hashPassword(pw, salt)).hash === hash);
+/* ---------- derived session key ---------- */
+
+{
+  const a = await sessionSecret({ ADMIN_PASSWORD: 'pw-one', GITHUB_TOKEN: 'tok' });
+  const b = await sessionSecret({ ADMIN_PASSWORD: 'pw-one', GITHUB_TOKEN: 'tok' });
+  const c = await sessionSecret({ ADMIN_PASSWORD: 'pw-two', GITHUB_TOKEN: 'tok' });
+  const d = await sessionSecret({ ADMIN_PASSWORD: 'pw-one', GITHUB_TOKEN: 'other' });
+
+  eq('session key: deterministic', a, b);
+  ok('session key: changes with the password', a !== c);
+  ok('session key: changes with the token', a !== d);
+  ok('session key: does not contain the password', !a.includes('pw-one'));
+  ok('session key: long enough to sign with', a.length >= 40);
 }
 
 /* ---------- tokens ---------- */
@@ -105,7 +116,8 @@ const eq = (n, a, b) => ok(n, a === b, a === b ? '' : `expected ${JSON.stringify
   writeFileSync(idx, readFileSync(idx, 'utf8').replace("from './ui/index.html'", "from './ui/index.html.js'"));
 
   const worker = (await import('file://' + idx)).default;
-  const ENV = { GITHUB_TOKEN: 'x', REPO_OWNER: 'o', REPO_NAME: 'r', SESSION_SECRET: 'signing-secret-value' };
+  const ENV = { GITHUB_TOKEN: 'x', REPO_OWNER: 'o', REPO_NAME: 'r', ADMIN_PASSWORD: 'the-admin-password' };
+  const SIGNING = await sessionSecret(ENV);
   const hit = (path, init) => worker.fetch(new Request('https://admin.test' + path, init), ENV);
 
   ok('worker: exports a fetch handler', typeof worker.fetch === 'function');
@@ -131,7 +143,7 @@ const eq = (n, a, b) => ok(n, a === b, a === b ? '' : `expected ${JSON.stringify
   }
 
   {
-    const good = await createToken(ENV.SESSION_SECRET, { sub: 'admin' });
+    const good = await createToken(SIGNING, { sub: 'admin' });
     const res = await hit('/api/save', {
       method: 'POST',
       headers: { Cookie: `__Host-rpc_admin=${good}`, Origin: 'https://evil.test', 'Content-Type': 'application/json' },
@@ -144,9 +156,22 @@ const eq = (n, a, b) => ok(n, a === b, a === b ? '' : `expected ${JSON.stringify
     const res = await hit('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'anything' }),
+      body: JSON.stringify({ password: 'the-wrong-password' }),
     });
-    ok('worker: login without a configured password fails', res.status === 401 || res.status === 429);
+    ok('worker: wrong password rejected', res.status === 401 || res.status === 429);
+  }
+
+  {
+    const res = await hit('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'the-admin-password' }),
+    });
+    // May be throttled by the preceding failures; both outcomes prove routing.
+    ok('worker: correct password authenticates', res.status === 200 || res.status === 429);
+    if (res.status === 200) {
+      ok('worker: sets a session cookie', /__Host-rpc_admin=/.test(res.headers.get('Set-Cookie') || ''));
+    }
   }
 
   {

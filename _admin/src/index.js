@@ -11,7 +11,7 @@
 import UI_HTML from './ui/index.html';
 import { GitHub } from './github.js';
 import {
-  hashPassword, verifyPassword, createToken, verifyToken,
+  verifyPassword, createToken, verifyToken, sessionSecret,
   sessionCookie, clearCookie, readCookie,
   throttleCheck, throttleFail, throttleReset, loginDelay, sameOrigin,
 } from './auth.js';
@@ -58,8 +58,7 @@ function siteOrigin (env) {
 
 async function requireSession (request, env) {
   const token = readCookie(request);
-  const payload = await verifyToken(env.SESSION_SECRET, token);
-  return payload;
+  return verifyToken(await sessionSecret(env), token);
 }
 
 function clientIp (request) {
@@ -83,7 +82,7 @@ async function handleLogin (request, env) {
   const password = String(body?.password || '');
   if (!password) return fail('Please enter your password.');
 
-  const good = await verifyPassword(password, env.ADMIN_PASSWORD_HASH, env.ADMIN_PASSWORD_SALT);
+  const good = await verifyPassword(password, env.ADMIN_PASSWORD);
   if (!good) {
     throttleFail(ip);
     await loginDelay();
@@ -91,7 +90,7 @@ async function handleLogin (request, env) {
   }
 
   throttleReset(ip);
-  const token = await createToken(env.SESSION_SECRET, { sub: 'admin' });
+  const token = await createToken(await sessionSecret(env), { sub: 'admin' });
   return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(token) });
 }
 
@@ -248,21 +247,6 @@ async function handleHistory (request, env) {
   return json({ ok: true, commits: await api.recentEdits(12) });
 }
 
-/* ---------- one-time setup helper ----------
-   Turns a password into the hash + salt pair to store as secrets.
-   Only available when no password has been configured yet.
-   ------------------------------------------------------------ */
-
-async function handleSetup (request, env) {
-  if (env.ADMIN_PASSWORD_HASH) return fail('Already configured.', 410);
-  let body;
-  try { body = await request.json(); } catch { return fail('Invalid request.'); }
-  const pw = String(body?.password || '');
-  if (pw.length < 12) return fail('Choose a password of at least 12 characters.');
-  const { hash, salt } = await hashPassword(pw);
-  return json({ ok: true, ADMIN_PASSWORD_HASH: hash, ADMIN_PASSWORD_SALT: salt });
-}
-
 /* ---------- entry ---------- */
 
 export default {
@@ -272,13 +256,11 @@ export default {
 
     try {
       // Config sanity — surfaces setup mistakes clearly instead of 500s.
-      const required = ['GITHUB_TOKEN', 'REPO_OWNER', 'REPO_NAME', 'SESSION_SECRET'];
+      const required = ['GITHUB_TOKEN', 'ADMIN_PASSWORD'];
       const missing = required.filter(k => !env[k]);
-      if (missing.length && path !== '/api/setup') {
+      if (missing.length) {
         return json({ ok: false, error: `Server not configured: missing ${missing.join(', ')}.` }, 500);
       }
-
-      if (path === '/api/setup' && request.method === 'POST') return handleSetup(request, env);
 
       if (path === '/api/login' && request.method === 'POST') return handleLogin(request, env);
 

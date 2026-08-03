@@ -1,17 +1,15 @@
 /* ============================================================
    auth.js — single-user login for the admin.
 
-   Password is never stored: the Worker holds a PBKDF2 hash and
-   salt as secrets. A successful login mints a short-lived signed
-   token kept in an HttpOnly, Secure, SameSite=Strict cookie, so
-   it is not reachable from JavaScript and does not ride along
-   with cross-site requests.
+   The password is a single Worker secret. A successful login mints
+   a short-lived signed token kept in an HttpOnly, Secure,
+   SameSite=Strict cookie, so it is not reachable from JavaScript
+   and does not ride along with cross-site requests.
    ============================================================ */
 
 'use strict';
 
 const enc = new TextEncoder();
-const PBKDF2_ITERATIONS = 210_000;      // OWASP guidance for SHA-256
 const SESSION_HOURS = 12;
 
 /* ---------- base64url ---------- */
@@ -39,22 +37,36 @@ function timingSafeEqual (a, b) {
   return diff === 0;
 }
 
-/* ---------- password hashing ---------- */
+/* ---------- password ----------
+   The password is a Worker secret, compared in constant time. Both
+   sides are digested first so the comparison cannot leak the length.
 
-export async function hashPassword (password, saltB64) {
-  const salt = saltB64 ? b64urlDecode(saltB64) : crypto.getRandomValues(new Uint8Array(16));
-  const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
-    key, 256
-  );
-  return { hash: b64urlEncode(new Uint8Array(bits)), salt: b64urlEncode(salt) };
+   There is deliberately no separate hash+salt to configure: a stored
+   hash guards against a leaked database, and there is no database
+   here. Anything able to read this Worker's secrets already has the
+   GitHub token, which matters far more — so the extra setup step
+   bought nothing and is gone.
+   ------------------------------------------------------------ */
+
+async function digest (s) {
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(String(s))));
 }
 
-export async function verifyPassword (password, expectedHash, saltB64) {
-  if (!expectedHash || !saltB64) return false;
-  const { hash } = await hashPassword(password, saltB64);
-  return timingSafeEqual(enc.encode(hash), enc.encode(expectedHash));
+export async function verifyPassword (password, expected) {
+  if (!expected || !password) return false;
+  const [a, b] = await Promise.all([digest(password), digest(expected)]);
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * Session signing key, derived from the secrets already configured.
+ * Deterministic, unique per deployment, and nothing extra to set up.
+ * Changing the password or token invalidates existing sessions, which
+ * is the behaviour you would want anyway.
+ */
+export async function sessionSecret (env) {
+  const material = `rpc-admin-session-v1:${env.ADMIN_PASSWORD || ''}:${env.GITHUB_TOKEN || ''}`;
+  return b64urlEncode(await digest(material));
 }
 
 /* ---------- session tokens ---------- */

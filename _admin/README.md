@@ -52,75 +52,71 @@ against the real page files in this repo).
 
 ---
 
-## First-time setup
+## Setup
 
-### 1. Create a GitHub token
+Two secrets, one connection. No terminal, no CLI, no build tokens.
 
-Use a **fine-grained personal access token** so its reach is limited to
-this one repository.
+### 1. GitHub token
+
+Fine-grained, so its reach is one repository.
 
 1. GitHub → Settings → Developer settings → **Fine-grained tokens** → *Generate new token*
 2. **Repository access** → *Only select repositories* → `rplanecarpenter`
 3. **Permissions** → Repository permissions → **Contents: Read and write**
-   (nothing else is needed)
-4. Set an expiry you're happy to renew — 1 year is reasonable
-5. Copy the token; you will not see it again
+   (Metadata: Read-only is added automatically)
+4. Expiry: 1 year. Copy the token.
 
-### 2. Install and generate secrets
+### 2. Connect Cloudflare to the repo
 
-```bash
-cd _admin
-npm install
-node scripts/hash-password.mjs "a password of at least 12 characters"
-```
+In the Cloudflare dashboard → **Workers & Pages** → **Create** → **Workers**
+→ **Import a repository**. Authorise GitHub, pick `rplanecarpenter`, then set:
 
-That prints the four `wrangler secret put` commands to run. The password
-itself is never stored — only a PBKDF2 hash and its salt.
+| Setting | Value |
+|---|---|
+| Root directory | `_admin` |
+| Build command | `npm install` |
+| Deploy command | `npx wrangler deploy` |
 
-### 3. Set the secrets
+### 3. Add the two secrets
 
-```bash
-npx wrangler secret put ADMIN_PASSWORD_HASH
-npx wrangler secret put ADMIN_PASSWORD_SALT
-npx wrangler secret put SESSION_SECRET
-npx wrangler secret put GITHUB_TOKEN
-```
+Same screen (or afterwards under the Worker's **Settings → Variables and
+Secrets**), added as **Secret**, not plain text:
 
-### 4. Deploy
+| Name | Value |
+|---|---|
+| `GITHUB_TOKEN` | the token from step 1 |
+| `ADMIN_PASSWORD` | the password the owner will log in with |
 
-```bash
-npx wrangler deploy
-```
+Deploy. Cloudflare gives you a `*.workers.dev` URL — that's the editor.
 
-Wrangler prints a `*.workers.dev` URL. That is already usable.
+It redeploys automatically whenever `_admin/` changes on `main`.
 
-### 5. (Optional) Use a custom domain
+### Optional: a nicer address
 
-Uncomment the `[[routes]]` block in `wrangler.toml`, then in the
-Cloudflare dashboard add `admin.rplanecarpenter.co.uk` as a custom
-domain for the Worker. This requires the domain's DNS to be on
-Cloudflare.
-
-Note the site itself stays on GitHub Pages either way — only the
-`admin.` subdomain points at the Worker.
+Worker → **Settings** → **Domains & Routes** → **Add** → custom domain →
+`admin.rplanecarpenter.co.uk`. Requires the domain's DNS to be on
+Cloudflare. The website itself stays on GitHub Pages either way.
 
 ---
 
 ## Local development
 
+Only needed if you want to change the editor itself — day-to-day use
+needs none of this.
+
 ```bash
+cd _admin
+npm install
 npm test          # run every suite
 npx wrangler dev  # run the Worker locally
 ```
 
-`wrangler dev` needs the same secrets; add them to a local `.dev.vars`
-file (git-ignored) while developing:
+`wrangler dev` needs the same two secrets in a local `.dev.vars` file
+(git-ignored):
 
 ```
 GITHUB_TOKEN=github_pat_...
-SESSION_SECRET=...
-ADMIN_PASSWORD_HASH=...
-ADMIN_PASSWORD_SALT=...
+ADMIN_PASSWORD=whatever-you-like
 ```
 
 ---
@@ -161,7 +157,7 @@ pages and that writing a field back unchanged is a no-op.
 
 | Symptom | Cause and fix |
 |---|---|
-| *"Server not configured"* | A secret is missing. Re-run the `wrangler secret put` commands. |
+| *"Server not configured"* | `GITHUB_TOKEN` or `ADMIN_PASSWORD` is missing from the Worker's secrets. |
 | *"The website connection is not authorised"* | The GitHub token expired or lost repo access. Generate a new one and re-set `GITHUB_TOKEN`. |
 | *"Could not find …, the page may have changed"* | A page's markup changed so a selector no longer matches. Run `npm test` to see which, then fix the `path` in `schema.js`. |
 | *"The website changed since you loaded this page"* | The repo moved between load and save (a manual commit, or two tabs). Reload the editor and redo the edit. |
@@ -172,7 +168,11 @@ pages and that writing a field back unchanged is a no-op.
 
 ## Security notes
 
-- Password is stored as PBKDF2-SHA256, 210,000 iterations, per-user salt.
+- The password is a Cloudflare secret (encrypted at rest, write-only in
+  the dashboard), compared in constant time after both sides are digested.
+- The session signing key is derived from the configured secrets, so
+  there is no third value to manage. Changing the password or the token
+  signs existing sessions out.
 - Sessions are HMAC-signed, 12-hour expiry, in a `__Host-` prefixed
   `HttpOnly; Secure; SameSite=Strict` cookie — unreachable from JS.
 - Write endpoints additionally verify the request origin.
@@ -187,7 +187,7 @@ pages and that writing a field back unchanged is a no-op.
 
 ## Handover checklist
 
-- [ ] Secrets set; `npx wrangler deploy` succeeds
+- [ ] Both secrets set; the Cloudflare deploy succeeds
 - [ ] Custom domain resolves (if used)
 - [ ] Owner can log in and publish a test edit
 - [ ] Owner has bookmarked the editor and added it to their home screen
