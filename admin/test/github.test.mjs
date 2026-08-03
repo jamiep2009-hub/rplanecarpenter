@@ -30,8 +30,9 @@ async function throwsAsync (n, fn) {
 function makeFakeGitHub () {
   const b64 = s => Buffer.from(s, 'utf8').toString('base64');
   const blobs = new Map();           // sha -> { content, encoding }
-  const commits = [];                // newest last
+  const commits = new Map();         // sha -> { sha, tree, message, parents }
   const trees = new Map();           // sha -> entries
+  let ref = null;                    // the branch pointer
   let n = 0;
   const nextSha = p => `${p}${String(++n).padStart(36, '0')}`;
 
@@ -47,14 +48,22 @@ function makeFakeGitHub () {
 
   const rootTree = nextSha('t');
   trees.set(rootTree, seed);
-  commits.push({ sha: nextSha('c'), tree: rootTree, message: 'initial', parents: [] });
+  const first = nextSha('c');
+  commits.set(first, { sha: first, tree: rootTree, message: 'initial', parents: [] });
+  ref = first;
 
-  const head = () => commits[commits.length - 1];
+  const head = () => commits.get(ref);
+  /** Commits reachable from the branch, newest first. */
+  const history = () => {
+    const out = [];
+    let sha = ref;
+    while (sha && commits.has(sha)) { const c = commits.get(sha); out.push(c); sha = c.parents[0]; }
+    return out;
+  };
+
   const json = (body, status = 200) => new Response(JSON.stringify(body), {
     status, headers: { 'Content-Type': 'application/json' },
   });
-
-  const calls = { commits: 0, blobs: 0 };
 
   globalThis.fetch = async (url, opts = {}) => {
     const u = String(url);
@@ -64,32 +73,26 @@ function makeFakeGitHub () {
     if (!/^Bearer .+/.test(opts.headers?.Authorization || '')) return json({ message: 'Bad credentials' }, 401);
     if (opts.headers && 'User-Agent' in opts.headers) return json({ message: 'forbidden header' }, 400);
 
-    // repo metadata (used by checkAccess)
     if (/\/repos\/[^/]+\/[^/]+$/.test(u)) {
       return json({ full_name: 'jamiep2009-hub/rplanecarpenter', default_branch: 'main', permissions: { push: true } });
     }
-    if (u.includes('/git/ref/heads/')) return json({ object: { sha: head().sha } });
+    if (u.includes('/git/ref/heads/')) return json({ object: { sha: ref } });
+
     if (u.match(/\/git\/commits\/(\w+)$/) && method === 'GET') {
       const sha = u.match(/\/git\/commits\/(\w+)$/)[1];
-      const c = commits.find(x => x.sha === sha) || head();
+      const c = commits.get(sha) || head();
       return json({ sha: c.sha, tree: { sha: c.tree }, parents: c.parents.map(p => ({ sha: p })) });
     }
     if (u.includes('/git/trees/') && method === 'GET') {
-      const sha = u.match(/\/git\/trees\/(\w+)/)[1];
-      return json({ tree: trees.get(sha) || [] });
+      return json({ tree: trees.get(u.match(/\/git\/trees\/(\w+)/)[1]) || [] });
     }
     if (u.includes('/git/blobs/') && method === 'GET') {
-      const sha = u.match(/\/git\/blobs\/(\w+)/)[1];
-      const b = blobs.get(sha);
+      const b = blobs.get(u.match(/\/git\/blobs\/(\w+)/)[1]);
       return b ? json(b) : json({ message: 'Not Found' }, 404);
     }
     if (u.endsWith('/git/blobs') && method === 'POST') {
-      calls.blobs++;
       const sha = nextSha('b');
-      blobs.set(sha, {
-        content: body.encoding === 'utf-8' ? b64(body.content) : body.content,
-        encoding: 'base64',
-      });
+      blobs.set(sha, { content: body.encoding === 'utf-8' ? b64(body.content) : body.content, encoding: 'base64' });
       return json({ sha });
     }
     if (u.endsWith('/git/trees') && method === 'POST') {
@@ -105,17 +108,24 @@ function makeFakeGitHub () {
       return json({ sha });
     }
     if (u.endsWith('/git/commits') && method === 'POST') {
-      calls.commits++;
+      // Creating a commit object does NOT move the branch — only the ref
+      // update does. Modelling that is what makes the conflict tests real.
       const sha = nextSha('c');
-      commits.push({ sha, tree: body.tree, message: body.message, parents: body.parents });
+      commits.set(sha, { sha, tree: body.tree, message: body.message, parents: body.parents });
       return json({ sha });
     }
     if (u.includes('/git/refs/heads/') && method === 'PATCH') {
-      return json({ object: { sha: body.sha } });
+      const target = commits.get(body.sha);
+      // Real GitHub refuses a non-fast-forward unless forced.
+      if (!body.force && target && !target.parents.includes(ref) && body.sha !== ref) {
+        return json({ message: 'Update is not a fast forward' }, 422);
+      }
+      ref = body.sha;
+      return json({ object: { sha: ref } });
     }
     if (u.includes('/commits?')) {
       const per = Number((u.match(/per_page=(\d+)/) || [])[1] || 30);
-      return json([...commits].reverse().slice(0, per).map(c => ({
+      return json(history().slice(0, per).map(c => ({
         sha: c.sha,
         commit: { message: c.message, author: { date: '2026-01-01T00:00:00Z' } },
       })));
@@ -123,7 +133,7 @@ function makeFakeGitHub () {
     return json({ message: 'unhandled ' + method + ' ' + u }, 500);
   };
 
-  return { commits, calls, head };
+  return { head, history, depth: () => history().length };
 }
 
 /* ---------- run the flow ---------- */
@@ -196,7 +206,7 @@ let files, sha, model;
 
 /* 3. publish an edit */
 {
-  const before = fake.commits.length;
+  const before = fake.depth();
   const result = applyChanges(files, { text: { 'home.hero.sub': 'A brand new intro line.' } });
   eq('publish: only one file changed', result.changed.join(','), 'index.html');
 
@@ -205,7 +215,7 @@ let files, sha, model;
   const commit = await gh.commit({ textFiles, message: 'page wording', expectedSha: sha });
 
   ok('publish: committed', commit.committed);
-  eq('publish: exactly one new commit', fake.commits.length, before + 1);
+  eq('publish: exactly one new commit', fake.depth(), before + 1);
   ok('publish: message is prefixed', fake.head().message.startsWith('Website edit:'));
 
   const after = await gh.readFiles(['index.html']);
@@ -216,7 +226,7 @@ let files, sha, model;
 
 /* 4. a multi-file edit is still ONE commit */
 {
-  const before = fake.commits.length;
+  const before = fake.depth();
   const fresh = (await gh.readFiles(EDITABLE_FILES)).files;
   const rs = readModel(fresh).reviews.map((r, i) => i === 0 ? { ...r, project: 'Changed label' } : r);
   const result = applyChanges(fresh, { reviews: rs });
@@ -225,7 +235,7 @@ let files, sha, model;
   const textFiles = {};
   for (const f of result.changed) textFiles[f] = result.files[f];
   await gh.commit({ textFiles, message: 'reviews' });
-  eq('atomic: still a single commit', fake.commits.length, before + 1);
+  eq('atomic: still a single commit', fake.depth(), before + 1);
 
   const after = (await gh.readFiles(['index.html', 'reviews-v2.js'])).files;
   ok('atomic: both files updated together',
@@ -234,19 +244,83 @@ let files, sha, model;
 
 /* 5. concurrent edits are refused, not silently overwritten */
 {
-  await throwsAsync('safety: stale save is refused', () =>
-    gh.commit({ textFiles: { 'index.html': 'x' }, message: 'stale', expectedSha: 'c000000000000000000000000000000000001' }));
+  try {
+    await gh.commit({ textFiles: { 'index.html': 'x' }, message: 'stale', expectedSha: 'c000000000000000000000000000000000001' });
+    ok('safety: stale save is refused', false, 'it was accepted');
+  } catch (err) {
+    ok('safety: stale save is refused', true);
+    ok('safety: the refusal is marked recoverable', err.conflict === true);
+    ok('safety: the message avoids git jargon', !/fast forward|422|409/i.test(err.message), err.message);
+  }
+}
+
+/* 5b. The exact race that broke a real save: the branch moves between
+      reading HEAD and updating the ref. An unguarded write — a photo
+      upload — must heal itself rather than surfacing GitHub's
+      "Update is not a fast forward". */
+{
+  const original = globalThis.fetch;
+  let refAttempts = 0;
+
+  globalThis.fetch = async (url, opts = {}) => {
+    if (String(url).includes('/git/refs/heads/') && opts.method === 'PATCH') {
+      refAttempts++;
+      if (refAttempts === 1) {
+        return new Response(JSON.stringify({ message: 'Update is not a fast forward' }),
+          { status: 422, headers: { 'Content-Type': 'application/json' } });
+      }
+    }
+    return original(url, opts);
+  };
+
+  const before = fake.depth();
+  const res = await gh.commit({
+    binaryFiles: { 'images/race-test.jpg': Buffer.from('bytes').toString('base64') },
+    message: 'add a photo',
+  });
+
+  ok('race: the upload succeeded despite the conflict', res.committed);
+  ok('race: it retried the ref update', refAttempts >= 2, `${refAttempts} attempts`);
+  ok('race: the photo landed', (await gh.listDir('images')).some(i => i.path === 'images/race-test.jpg'));
+
+  globalThis.fetch = original;
+}
+
+/* 5c. A guarded write must NOT retry behind the caller's back: re-applying
+      blindly could overwrite an edit made somewhere else. The caller
+      rebuilds against the newer state and decides. */
+{
+  const original = globalThis.fetch;
+  let patches = 0;
+  globalThis.fetch = async (url, opts = {}) => {
+    if (String(url).includes('/git/refs/heads/') && opts.method === 'PATCH') {
+      patches++;
+      return new Response(JSON.stringify({ message: 'Update is not a fast forward' }),
+        { status: 422, headers: { 'Content-Type': 'application/json' } });
+    }
+    return original(url, opts);
+  };
+
+  const sha = await gh.headSha();
+  try {
+    await gh.commit({ textFiles: { 'index.html': 'y' }, message: 'guarded', expectedSha: sha });
+    ok('race: a guarded write surfaces the conflict', false, 'it was accepted');
+  } catch (err) {
+    ok('race: a guarded write surfaces the conflict', err.conflict === true);
+    eq('race: it did not retry silently', patches, 1);
+  }
+  globalThis.fetch = original;
 }
 
 /* 6. binary upload */
 {
-  const before = fake.commits.length;
+  const before = fake.depth();
   const res = await gh.commit({
     binaryFiles: { 'images/test-photo.jpg': Buffer.from('fake-jpeg-bytes').toString('base64') },
     message: 'add a photo',
   });
   ok('upload: committed', res.committed);
-  eq('upload: one commit', fake.commits.length, before + 1);
+  eq('upload: one commit', fake.depth(), before + 1);
   const listed = await gh.listDir('images');
   ok('upload: file appears in the tree', listed.some(i => i.path === 'images/test-photo.jpg'));
 }
@@ -265,7 +339,7 @@ let files, sha, model;
   const restored = (await gh.readFiles(['index.html'])).files['index.html'];
   ok('undo: change is gone', !restored.includes(marker));
   ok('undo: original text is back', restored.includes('Crafted by hand.'));
-  ok('undo: history is added to, not rewritten', fake.commits.length > 1);
+  ok('undo: history is added to, not rewritten', fake.depth() > 1);
 }
 
 /* 8. bad credentials surface a readable message */

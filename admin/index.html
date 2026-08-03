@@ -998,27 +998,47 @@ async function doPublish () {
   const label = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
 
+  const summary = Object.keys(c).map(k => ({
+    text:'page wording', gallery:'gallery photos', bento:'homepage photos',
+    beforeafter:'before & after', reviews:'reviews', contact:'contact details',
+  }[k] || k)).join(', ');
+
   try {
-    const result = applyChanges(S.files, c);
-    if (!result.changed.length) {
-      toast('Nothing had actually changed.', 'warn');
-      S.base = clone(S.draft);
-    } else {
+    let done = null;
+
+    for (let attempt = 0; attempt < 3 && !done; attempt++) {
+      // Build against the newest version of the site every time. If
+      // something changed elsewhere — another device, or a change pushed
+      // straight to the repository — it is carried forward rather than
+      // overwritten, and only the edits made here are applied on top.
+      const { files, sha } = await S.gh.readFiles(EDITABLE_FILES);
+      const result = applyChanges(files, c);
+
+      if (!result.changed.length) { done = { committed: false, files, sha }; break; }
+
       const textFiles = {};
       for (const f of result.changed) textFiles[f] = result.files[f];
-      const summary = Object.keys(c).map(k => ({
-        text:'page wording', gallery:'gallery photos', bento:'homepage photos',
-        beforeafter:'before & after', reviews:'reviews', contact:'contact details',
-      }[k] || k)).join(', ');
 
-      const commit = await S.gh.commit({ textFiles, message: summary, expectedSha: S.sha });
-      S.files = result.files;
-      S.sha = commit.sha;
-      S.base = clone(S.draft);
-      toast('Published. The website updates in about a minute.', 'ok', 5200);
+      try {
+        const commit = await S.gh.commit({ textFiles, message: summary, expectedSha: sha });
+        done = { committed: true, files: result.files, sha: commit.sha };
+      } catch (err) {
+        if (!err.conflict || attempt === 2) throw err;
+        toast('The website just changed — merging your edit and trying again…', 'warn', 2800);
+        await new Promise(r => setTimeout(r, 600));
+      }
     }
+
+    S.files = done.files;
+    S.sha = done.sha;
+    S.base = clone(S.draft);
+    toast(done.committed
+      ? 'Published. The website updates in about a minute.'
+      : 'Nothing had actually changed.', done.committed ? 'ok' : 'warn', 5200);
   } catch (err) {
-    toast(err.message, 'err', 6500);
+    toast(err.conflict
+      ? 'Could not save — the website kept changing underneath. Wait a moment and press Publish again.'
+      : err.message, 'err', 7000);
   } finally {
     S.busy = false;
     btn.disabled = false; btn.innerHTML = label;

@@ -50,7 +50,13 @@ export class GitHub {
         throw new Error('Your access key is not valid any more. It may have expired or been removed.');
       }
       if (res.status === 404) throw new Error('Could not reach the website files. Check the access key has permission for this repository.');
-      if (res.status === 409) throw new Error('Someone else changed the site at the same time. Please reload and try again.');
+      if (res.status === 409 || res.status === 422) {
+        // The branch moved while this save was being built. Callers can
+        // catch this and rebuild against the newer state.
+        const err = new Error('The website changed while you were editing. Trying again with the latest version…');
+        err.conflict = true;
+        throw err;
+      }
       throw new Error(`GitHub error ${res.status}${detail ? ': ' + detail : ''}`);
     }
 
@@ -126,10 +132,31 @@ export class GitHub {
    *                 has moved since the editor loaded — no silent
    *                 overwriting of someone else's change.
    */
-  async commit ({ textFiles = {}, binaryFiles = {}, message, expectedSha }) {
+  async commit (opts) {
+    // A write with no expectedSha simply means "add this on top of
+    // whatever is there" — a photo upload, say. If the branch moves
+    // mid-write, rebuilding on the new head is exactly right, so do it
+    // automatically rather than bothering the person editing.
+    if (opts.expectedSha) return this.#commitOnce(opts);
+
+    let lastErr;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try { return await this.#commitOnce(opts); }
+      catch (err) {
+        if (!err.conflict) throw err;
+        lastErr = err;
+        await new Promise(r => setTimeout(r, 250 * (attempt + 1)));
+      }
+    }
+    throw lastErr;
+  }
+
+  async #commitOnce ({ textFiles = {}, binaryFiles = {}, message, expectedSha }) {
     const headSha = await this.headSha();
     if (expectedSha && expectedSha !== headSha) {
-      throw new Error('The website changed since you loaded this page. Please reload and try again.');
+      const err = new Error('The website changed while you were editing. Trying again with the latest version…');
+      err.conflict = true;
+      throw err;
     }
 
     const head = await this.call(`/git/commits/${headSha}`);
