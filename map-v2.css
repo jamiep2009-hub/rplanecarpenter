@@ -1,0 +1,129 @@
+/* ============================================================
+   R. Plane Carpenter — Service area map
+
+   A drawn map of Norfolk rather than an embedded one. No third
+   party, no extra requests, no cookies — which also keeps the
+   privacy policy's "this site sets no cookies" honest.
+   ============================================================ */
+
+.mp {
+  background: #0a0806;
+  padding: 96px clamp(20px, 5vw, 68px) 100px;
+  position: relative;
+  overflow: hidden;
+}
+.mp::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 40%;
+  width: 120%; aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at center,
+    rgba(196, 135, 61, .10) 0%, rgba(196, 135, 61, .03) 40%, transparent 68%);
+  pointer-events: none;
+}
+.mp-wrap { max-width: 1080px; margin: 0 auto; position: relative; }
+
+/* ---------- heading ---------- */
+.mp-head { text-align: center; max-width: 620px; margin: 0 auto 44px; }
+.mp-eyebrow {
+  font-size: 11px; font-weight: 500; letter-spacing: .28em;
+  text-transform: uppercase; color: #c4873d; margin: 0 0 18px;
+  display: inline-flex; align-items: center; gap: 12px;
+}
+.mp-eyebrow::before,
+.mp-eyebrow::after { content: ""; width: 24px; height: 1px; background: currentColor; }
+.mp-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 400;
+  line-height: 1.05; letter-spacing: -.025em; color: #fff; margin: 0 0 18px;
+}
+.mp-title em { color: #c4873d; font-style: italic; font-weight: 300; }
+.mp-lead { color: rgba(255, 255, 255, .62); font-size: 15px; line-height: 1.65; margin: 0; }
+
+/* ---------- the map ---------- */
+.mp-figure { max-width: 860px; margin: 0 auto; }
+.mp-svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+.mp-shape {
+  stroke: rgba(196, 135, 61, .55);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 18px 44px rgba(0, 0, 0, .55));
+}
+
+.mp-dot {
+  fill: #e8c89a;
+  opacity: .85;
+  transition: opacity .3s ease, r .3s ease;
+}
+.mp-hub { fill: #c4873d; }
+.mp-hub-ring {
+  fill: none;
+  stroke: #c4873d;
+  stroke-width: 1.5;
+  opacity: .5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mp-pulse 3.4s ease-out infinite;
+}
+@keyframes mp-pulse {
+  0%   { transform: scale(.55); opacity: .65; }
+  70%  { transform: scale(1.9); opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+.mp-label {
+  font-family: Nunito, system-ui, sans-serif;
+  font-size: 19px; font-weight: 600;
+  fill: rgba(255, 255, 255, .6);
+  letter-spacing: .01em;
+}
+.mp-label-hub {
+  font-size: 25px; font-weight: 700;
+  fill: #fff;
+}
+
+/* ---------- town list (the part search engines read) ---------- */
+.mp-towns { max-width: 760px; margin: 40px auto 0; text-align: center; }
+.mp-towns-h {
+  font-size: 11px; font-weight: 700; letter-spacing: .22em;
+  text-transform: uppercase; color: rgba(255, 255, 255, .42); margin: 0 0 18px;
+}
+.mp-list {
+  list-style: none; margin: 0 0 22px; padding: 0;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+}
+.mp-list li {
+  font-size: 13.5px; color: rgba(255, 255, 255, .8);
+  padding: 7px 15px; border-radius: 999px;
+  border: 1px solid rgba(196, 135, 61, .28);
+  background: rgba(196, 135, 61, .06);
+  transition: border-color .25s ease, background .25s ease, color .25s ease;
+}
+.mp-list li:hover {
+  border-color: rgba(196, 135, 61, .6);
+  background: rgba(196, 135, 61, .12);
+  color: #fff;
+}
+.mp-note { font-size: 14px; color: rgba(255, 255, 255, .5); margin: 0; }
+.mp-note a { color: #e8c89a; text-underline-offset: 3px; }
+.mp-note a:hover { color: #fff; }
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .mp-hub-ring { animation: none; opacity: .4; }
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 760px) {
+  .mp { padding: 64px 16px 72px; }
+  .mp-head { margin-bottom: 30px; }
+  /* Labels crowd the map at this size; the list below carries the names. */
+  .mp-label { display: none; }
+  .mp-label-hub { display: block; font-size: 34px; }
+  .mp-dot { r: 6; }
+  .mp-towns { margin-top: 28px; }
+  .mp-list { gap: 7px; }
+  .mp-list li { font-size: 12.5px; padding: 6px 12px; }
+}

@@ -134,6 +134,16 @@ export const TEXT_FIELDS = [
     path: [{ cls: 'ci-item', nth: 3 }, { cls: 'ci-text' }, { tag: 'span' }], type: 'line', max: 60 },
   { id: 'contact.location', file: 'contact.html', group: 'Contact page', label: 'Location',
     path: [{ cls: 'ci-item', nth: 2 }, { cls: 'ci-text' }, { tag: 'span' }], type: 'line', max: 60 },
+
+  /* ---------- Service area map ---------- */
+  { id: 'areas.eyebrow', file: 'contact.html', group: 'Areas covered', label: 'Small line',
+    path: [{ cls: 'mp-eyebrow' }], type: 'line', max: 60 },
+  { id: 'areas.title', file: 'contact.html', group: 'Areas covered', label: 'Heading',
+    path: [{ cls: 'mp-title' }], type: 'heading', max: 60 },
+  { id: 'areas.lead', file: 'contact.html', group: 'Areas covered', label: 'Intro',
+    path: [{ cls: 'mp-lead' }], type: 'para', max: 320 },
+  { id: 'areas.note', file: 'contact.html', group: 'Areas covered', label: 'Line under the town list',
+    path: [{ cls: 'mp-note' }], type: 'para', max: 160 },
 ];
 
 /* ------------------------------------------------------------

@@ -137,7 +137,10 @@ for (const page of LIVE_PAGES) {
   ok('reviews: start marker precedes the array', start !== -1 && start < js.indexOf('var reviews'));
 }
 
-/* ---------- 4. No live page has been modified ---------- */
+/* ---------- 4. The working tree is clean when tests run ----------
+   Catches a page edited by accident and left uncommitted, which would
+   otherwise make the round-trip results above meaningless.
+   ------------------------------------------------------------ */
 
 {
   let changed = [];
@@ -146,7 +149,7 @@ for (const page of LIVE_PAGES) {
       { cwd: SITE, encoding: 'utf8' });
     changed = out.split('\n').map(l => l.slice(3).trim()).filter(Boolean);
   } catch { /* not a git checkout — skip */ }
-  ok('diff: no live page has been modified', changed.length === 0, changed.join(', '));
+  ok('diff: no uncommitted change to a live page', changed.length === 0, changed.join(', '));
 }
 
 /* ---------- 5. The editor cannot reach anything outside its list ---------- */
