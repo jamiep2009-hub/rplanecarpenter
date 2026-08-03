@@ -96,6 +96,28 @@ for (const page of LIVE_PAGES) {
   ok('passwords: it can be revealed to be read', html.includes('data-peek'));
 }
 
+/* ---------- 2c. A just-uploaded photo is never shown as broken ---------- */
+
+{
+  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8');
+
+  // GitHub Pages takes about a minute to rebuild, so a photo added moments
+  // ago 404s on the live site. Both the editor's own thumbnails and the
+  // preview must fall back to the copy already in the browser.
+  ok('fresh: local copies are kept for new uploads', html.includes('freshUrls'));
+  ok('fresh: the main photo is kept', /freshUrls\.set\(path,/.test(html));
+  ok('fresh: the blur placeholder is kept too', /freshUrls\.set\(`\$\{IMAGE_DIR\}\/\$\{lqipName\}`/.test(html));
+
+  ok('fresh: thumbnails go through imgUrl()', html.includes('const imgUrl ='));
+  ok('fresh: no thumbnail points straight at the live site',
+     !/src="\$\{SITE\}\/\$\{esc\(/.test(html));
+
+  ok('fresh: the preview substitutes local copies', html.includes('withFreshImages(html.replace'));
+  ok('fresh: substitution is longest-path-first',
+     /sort\(\(a, b\) => b\.length - a\.length\)/.test(html),
+     'shorter names could otherwise corrupt longer ones');
+}
+
 /* ---------- 3. reviews-v2.js still parses and still works ---------- */
 
 {

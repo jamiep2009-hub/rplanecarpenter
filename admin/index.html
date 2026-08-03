@@ -308,6 +308,17 @@ const clone = o => JSON.parse(JSON.stringify(o));
    the editor never displays a broken image for something you just added. */
 const freshUrls = new Map();
 const imgUrl = path => freshUrls.get(path) || `${SITE}/${path}`;
+
+/** Point a rendered page at local copies of anything not yet deployed. */
+function withFreshImages (html) {
+  if (!freshUrls.size) return html;
+  let out = html;
+  // Longest paths first, so one filename can never be a prefix of another.
+  for (const path of [...freshUrls.keys()].sort((a, b) => b.length - a.length)) {
+    out = out.split(path).join(freshUrls.get(path));
+  }
+  return out;
+}
 const $ = id => document.getElementById(id);
 
 /* ============================================================
@@ -412,14 +423,16 @@ function safeName (original, prefix) {
 async function uploadPhoto (file, opts, prefix) {
   const out = await processImage(file, opts);
   const name = safeName(file.name, prefix);
+  const lqipName = name.replace(/\.jpg$/, '-lqip.jpg');
   const binaryFiles = {};
   binaryFiles[`${IMAGE_DIR}/${name}`] = await toBase64(out.main);
-  binaryFiles[`${IMAGE_DIR}/${name.replace(/\.jpg$/, '-lqip.jpg')}`] = await toBase64(out.lqip);
+  binaryFiles[`${IMAGE_DIR}/${lqipName}`] = await toBase64(out.lqip);
 
   await S.gh.commit({ binaryFiles, message: 'add a photo' });
 
   const path = `${IMAGE_DIR}/${name}`;
   freshUrls.set(path, URL.createObjectURL(out.main));
+  freshUrls.set(`${IMAGE_DIR}/${lqipName}`, URL.createObjectURL(out.lqip));
   S.images.unshift({ path, size: out.main.size });
   return { path, width: out.width, height: out.height };
 }
@@ -961,8 +974,10 @@ function doPreview () {
   } catch (err) {
     return toast(err.message, 'err', 6000);
   }
-  // A <base> tag makes relative assets resolve against the live site.
-  html = html.replace(/<head>/i, `<head>\n<base href="${SITE}/">`);
+  // A <base> tag makes relative assets resolve against the live site;
+  // withFreshImages then redirects anything not published yet to the
+  // copy already in this browser, so new photos show immediately.
+  html = withFreshImages(html.replace(/<head>/i, `<head>\n<base href="${SITE}/">`));
 
   const w = sheet('Preview', `<iframe class="frame"></iframe>`,
     `<button class="btn" data-close="1">Close</button><button class="btn btn-gold" data-pub="1">Publish now</button>`);
