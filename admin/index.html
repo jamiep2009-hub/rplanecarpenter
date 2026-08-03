@@ -206,6 +206,11 @@ main{flex:1;padding:20px 18px calc(150px + var(--safe-b))}
 .imgpick button:hover{border-color:var(--gold)}
 .imgpick button.on{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 26%,transparent)}
 .imgpick img{width:100%;height:84px;object-fit:cover}
+.linkbox{
+  font-family:var(--mono);font-size:12px;line-height:1.6;word-break:break-all;
+  padding:12px 13px;border-radius:10px;background:var(--surface-2);
+  border:1px solid var(--line);color:var(--ink-2);user-select:all;-webkit-user-select:all;
+}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 </style>
 </head>
@@ -256,6 +261,8 @@ const I = {
   up2:'<path d="M12 19V5M5 12l7-7 7 7"/>',
   out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  share:'<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
 };
 const svg = (d, w = 20) =>
   `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -437,6 +444,11 @@ function viewMenu () {
   </div>
   <div class="sec-title">Site</div>
   <div class="menu">
+    <button class="menu-item" data-go="handover">
+      <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.share, 20)}</span>
+      <span class="menu-txt"><strong>Set up another device</strong><span>Give someone else access to this editor</span></span>
+      ${svg(I.chev, 17)}
+    </button>
     <button class="menu-item" data-act="undo">
       <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.undo, 20)}</span>
       <span class="menu-txt"><strong>Undo last change</strong><span>Put the website back the way it was</span></span>
@@ -580,6 +592,35 @@ function fieldHtml (f) {
   </div>`;
 }
 
+function viewHandover () {
+  const key = localStorage.getItem(KEY_STORE) || '';
+  const link = `${SITE}/admin/#k=${encodeURIComponent(key)}`;
+  return `<div class="note">${svg(I.warn,17)}<span>This link contains your access key. Treat it like a password &mdash; send it directly to the person who needs it, and to nobody else.</span></div>
+
+    <div class="card"><div class="card-b">
+      <div class="field">
+        <label>Set-up link</label>
+        <div class="linkbox" id="linkBox">${esc(link)}</div>
+        <div class="hint">Opening this on another phone signs it in automatically. The key disappears from the address bar straight away.</div>
+      </div>
+      <div class="two">
+        <button class="btn btn-gold" data-copylink="1">${svg(I.copy,15)} Copy link</button>
+        <button class="btn" data-sharelink="1">${svg(I.share,15)} Share</button>
+      </div>
+    </div></div>
+
+    <div class="sec-title">How to hand it over</div>
+    <div class="card"><div class="card-b">
+      <p style="margin:0 0 10px;font-size:14.5px;color:var(--ink-2)"><strong style="color:var(--ink)">If you're with them:</strong> tap Share, send it to their phone, and open it there. Then add the page to their home screen.</p>
+      <p style="margin:0;font-size:14.5px;color:var(--ink-2)"><strong style="color:var(--ink)">If you're not:</strong> send the link by message, and tell them to delete the message once it's working.</p>
+    </div></div>
+
+    <div class="sec-title">Worth doing</div>
+    <div class="card"><div class="card-b">
+      <p style="margin:0;font-size:14.5px;color:var(--ink-2)">This shares the key you're using, so revoking it would sign you out too. For a client it's tidier to make them <strong style="color:var(--ink)">their own key</strong> on GitHub, sign in with it here on their phone, and keep yours separate &mdash; then either can be revoked without affecting the other.</p>
+    </div></div>`;
+}
+
 function viewContact () {
   const c = S.draft.contact || {};
   return `<div class="note">${svg(I.warn,17)}<span>Changing these updates your phone number or email <strong>everywhere</strong> on the website, including the WhatsApp button.</span></div>
@@ -599,6 +640,7 @@ function viewContact () {
 const TITLES = {
   menu:'Website Editor', gallery:'Gallery photos', bento:'Homepage photos',
   beforeafter:'Before & After', reviews:'Reviews', text:'Page wording', contact:'Contact details',
+  handover:'Set up another device',
 };
 
 function render (setupError) {
@@ -614,7 +656,8 @@ function render (setupError) {
     S.view === 'beforeafter' ? viewBeforeAfter() :
     S.view === 'reviews' ? viewReviews() :
     S.view === 'text' ? viewText() :
-    S.view === 'contact' ? viewContact() : '';
+    S.view === 'contact' ? viewContact() :
+    S.view === 'handover' ? viewHandover() : '';
 
   root.innerHTML = `<div class="app">
     <header class="topbar">
@@ -974,6 +1017,33 @@ document.addEventListener('click', async e => {
     list.splice(i, 1); render(); return;
   }
 
+  const copyLink = e.target.closest('[data-copylink]');
+  if (copyLink) {
+    const text = $('linkBox').textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Link copied. Send it to the other phone.', 'ok');
+    } catch {
+      const r = document.createRange();
+      r.selectNodeContents($('linkBox'));
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(r);
+      toast('Press and hold the link to copy it.', 'warn', 5000);
+    }
+    return;
+  }
+
+  const shareLink = e.target.closest('[data-sharelink]');
+  if (shareLink) {
+    const text = $('linkBox').textContent;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Website Editor', url: text }); } catch { /* dismissed */ }
+    } else {
+      toast('Sharing is not available on this browser — use Copy link instead.', 'warn', 5000);
+    }
+    return;
+  }
+
   if (e.target.closest('#btnPreview')) return doPreview();
   if (e.target.closest('#btnPublish')) return doPublish();
 });
@@ -1003,11 +1073,29 @@ document.addEventListener('input', e => {
   if (ct) { S.draft.contact[ct.dataset.ct] = ct.value; syncBar(); }
 });
 
-/* ---- boot ---- */
-const saved = localStorage.getItem(KEY_STORE);
+/* ---- boot ----
+   A setup link carries the key in the URL fragment (#k=…). Fragments
+   are never sent to a server, and this page is static, so the key goes
+   straight from one device to another without touching anything in
+   between. It is wiped from the address bar the moment it is read.
+   ------------------------------------------------------------ */
+function keyFromLink () {
+  const m = /[#&]k=([^&]+)/.exec(location.hash || '');
+  if (!m) return null;
+  let key = null;
+  try { key = decodeURIComponent(m[1]); } catch { key = null; }
+  history.replaceState(null, '', location.pathname + location.search);
+  return key && key.length > 20 ? key : null;
+}
+
+const linked = keyFromLink();
+const saved = linked || localStorage.getItem(KEY_STORE);
+
+if (linked) localStorage.setItem(KEY_STORE, linked);
+
 if (saved) {
   S.gh = new GitHub({ token: saved, ...REPO });
-  load();
+  load().then(() => { if (linked && S.ready) toast('This device is set up. You can start editing.', 'ok', 5200); });
 } else {
   S.loading = false;
   render();

@@ -45,6 +45,15 @@ for (const page of LIVE_PAGES) {
   ok('editor: ships no hard-coded credential', !TOKEN_RE.test(html));
   ok('editor: targets the right repository',
      html.includes("owner: 'jamiep2009-hub'") && html.includes("repo: 'rplanecarpenter'"));
+
+  // The set-up link must carry the key in the URL *fragment*. A query
+  // string would be sent to the server and land in access logs.
+  ok('handover: key travels in the fragment, not a query string',
+     html.includes('/admin/#k=') && !/\/admin\/\?k=/.test(html));
+  ok('handover: fragment is stripped from the address bar after use',
+     html.includes('history.replaceState'));
+  ok('handover: a too-short fragment is ignored',
+     /key\.length > 20/.test(html));
 }
 
 /* ---------- 3. reviews-v2.js still parses and still works ---------- */
