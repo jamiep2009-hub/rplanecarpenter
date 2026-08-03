@@ -13,11 +13,11 @@ import {
   htmlToText, textToHtml, escapeHtml, inlineToText, textToInline,
 } from './htmledit.js';
 import {
-  TEXT_FIELDS, COLLECTIONS, getTextField, EDITABLE_FILES,
+  TEXT_FIELDS, COLLECTIONS, getTextField, EDITABLE_FILES, SCHEMA_ORG_FILES,
 } from './schema.js';
 import {
   renderGalleryGrid, renderBentoGrid, renderBeforeAfterGallery,
-  renderReviewsArray, renderReviewChips, renderReviewQuote,
+  renderReviewsArray, renderReviewChips, renderReviewQuote, renderTownList,
 } from './render.js';
 
 /* ------------------------------------------------------------
@@ -291,6 +291,63 @@ function validateReviews (items) {
 }
 
 /* ------------------------------------------------------------
+   Service-area towns
+
+   The visible list and the structured data are regenerated from one
+   model, so what a visitor reads and what Google reads cannot drift
+   apart — which was the whole point of listing towns at all.
+   ------------------------------------------------------------ */
+
+export function readTowns (html) {
+  const list = readPath(html, COLLECTIONS.towns.container);
+  return locateAll(list, COLLECTIONS.towns.item)
+    .map(m => htmlToText(list.slice(m.innerStart, m.innerEnd)))
+    .filter(Boolean);
+}
+
+export function writeTowns (html, towns) {
+  validateTowns(towns);
+  try { if (sameList(readTowns(html), towns)) return html; } catch { /* regenerate */ }
+  return replacePath(html, COLLECTIONS.towns.container, renderTownList(towns));
+}
+
+function validateTowns (towns) {
+  if (!Array.isArray(towns) || towns.length === 0) throw new Error('At least one town is required.');
+  if (towns.length > COLLECTIONS.towns.max) throw new Error(`Too many towns (max ${COLLECTIONS.towns.max}).`);
+  towns.forEach((t, i) => {
+    const s = String(t || '').trim();
+    if (!s) throw new Error(`Town ${i + 1} is blank.`);
+    if (s.length > 40) throw new Error(`"${s.slice(0, 20)}…" is too long (max 40 characters).`);
+    if (/[<>]/.test(s)) throw new Error(`"${s}" contains characters that are not allowed.`);
+  });
+  const seen = new Set();
+  for (const t of towns) {
+    const k = String(t).trim().toLowerCase();
+    if (seen.has(k)) throw new Error(`"${t}" is listed twice.`);
+    seen.add(k);
+  }
+}
+
+/** Mirror the town list into the page's LocalBusiness areaServed. */
+export function writeAreaServed (html, towns) {
+  const sel = [{ tag: 'script', attrs: { type: 'application/ld+json' } }];
+  let raw;
+  try { raw = readPath(html, sel); } catch { return html; }   // page carries none
+
+  let data;
+  try { data = JSON.parse(raw); } catch { return html; }      // never mangle what we cannot parse
+
+  const next = [
+    { '@type': 'AdministrativeArea', name: 'Norfolk' },
+    ...towns.map(t => ({ '@type': 'City', name: String(t).trim() })),
+  ];
+  if (JSON.stringify(data.areaServed) === JSON.stringify(next)) return html;
+
+  data.areaServed = next;
+  return replacePath(html, sel, '\n' + JSON.stringify(data, null, 2) + '\n');
+}
+
+/* ------------------------------------------------------------
    Contact details — replaced by exact value across every page.
    ------------------------------------------------------------ */
 
@@ -375,6 +432,7 @@ export function readModel (files) {
   try { model.bento = readBento(files['index.html']); } catch { model.bento = []; }
   try { model.beforeafter = readBeforeAfter(files['gallery.html']); } catch { model.beforeafter = []; }
   try { model.reviews = readReviews(files['reviews-v2.js']); } catch { model.reviews = []; }
+  try { model.towns = readTowns(files['contact.html']); } catch { model.towns = []; }
 
   return model;
 }
@@ -407,6 +465,13 @@ export function applyChanges (files, changes) {
   if (changes.reviews) {
     out['reviews-v2.js'] = writeReviews(out['reviews-v2.js'], changes.reviews);
     out['index.html'] = writeReviewsIntoHome(out['index.html'], changes.reviews);
+  }
+
+  if (changes.towns) {
+    out['contact.html'] = writeTowns(out['contact.html'], changes.towns);
+    for (const f of SCHEMA_ORG_FILES) {
+      if (out[f] != null) out[f] = writeAreaServed(out[f], changes.towns);
+    }
   }
 
   const changed = Object.keys(out).filter(f => out[f] !== files[f]);

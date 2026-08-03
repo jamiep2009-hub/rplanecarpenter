@@ -135,3 +135,9 @@ export function renderReviewQuote (first) {
     '    </footer>\n' +
     '  ';
 }
+
+/* ---------- Service-area towns ---------- */
+
+export function renderTownList (towns) {
+  return '\n' + towns.map(t => '        <li>' + escapeHtml(t) + '</li>').join('\n') + '\n      ';
+}

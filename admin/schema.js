@@ -204,7 +204,21 @@ export const COLLECTIONS = {
     file: 'reviews-v2.js',
     max: 20,
   },
+  towns: {
+    label: 'Towns covered',
+    file: 'contact.html',
+    container: [{ cls: 'mp-list' }],
+    item: { tag: 'li' },
+    max: 40,
+  },
 };
+
+/**
+ * Pages carrying LocalBusiness structured data. The town list is
+ * mirrored into `areaServed` on each, so what Google reads can never
+ * drift from what the page says.
+ */
+export const SCHEMA_ORG_FILES = ['index.html', 'contact.html'];
 
 /** Look up a text field definition by id. */
 export function getTextField (id) {

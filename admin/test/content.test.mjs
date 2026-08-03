@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  readModel, applyChanges, readGallery, writeGallery,
+  readModel, applyChanges, readGallery, writeGallery, readTowns, writeTowns,
   readBento, writeBento, readBeforeAfter, writeBeforeAfter,
   readReviews, writeReviews, writeReviewsIntoHome,
   parseHeading, renderHeading, phoneForms, readContact,
@@ -215,6 +215,55 @@ throws('phone: too short rejected', () => phoneForms('0799'));
      !EDITABLE_FILES.some(f => res.files[f]?.includes('rplanecarpenter@hotmail.co.uk')));
   throws('contact: bad email rejected', () =>
     applyChanges(files, { contact: { ...model.contact, email: 'not-an-email' } }));
+}
+
+/* ---------- 8. Service-area towns ---------- */
+
+{
+  const towns = readTowns(files['contact.html']);
+  eq('towns: 16 read from the page', towns.length, 16);
+  ok('towns: names are plain text', towns.every(t => /^[A-Za-z' -]+$/.test(t)), towns.join(','));
+  ok('towns: apostrophes survive', towns.includes("King's Lynn"));
+
+  const out = writeTowns(files['contact.html'], towns);
+  ok('towns: identity round-trip is byte-identical', out === files['contact.html']);
+}
+{
+  // The visible list and the structured data must move together, or the
+  // page and what Google reads drift apart.
+  const towns = readTowns(files['contact.html']);
+  const res = applyChanges(files, { towns: [...towns, 'Sheringham'] });
+
+  eq('towns: adding one touches both pages', res.changed.sort().join(','), 'contact.html,index.html');
+  ok('towns: the visible list gained it', res.files['contact.html'].includes('<li>Sheringham</li>'));
+
+  for (const page of ['index.html', 'contact.html']) {
+    const ld = JSON.parse(res.files[page].match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+    const names = ld.areaServed.map(a => a.name);
+    ok(`towns: ${page} areaServed gained it`, names.includes('Sheringham'));
+    eq(`towns: ${page} areaServed matches the list`, names.slice(1).join(','), [...towns, 'Sheringham'].join(','));
+    eq(`towns: ${page} keeps Norfolk first`, ld.areaServed[0]['@type'], 'AdministrativeArea');
+    ok(`towns: ${page} rest of the schema is intact`, ld.telephone === '+447990527683' && ld.geo && ld.hasOfferCatalog);
+  }
+}
+{
+  const towns = readTowns(files['contact.html']);
+  const res = applyChanges(files, { towns: towns.filter(t => t !== 'Watton') });
+  ok('towns: removing one drops it from the page', !res.files['contact.html'].includes('<li>Watton</li>'));
+  const ld = JSON.parse(res.files['index.html'].match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  ok('towns: removing one drops it from the schema', !ld.areaServed.some(a => a.name === 'Watton'));
+}
+
+throws('towns: empty list rejected', () => applyChanges(files, { towns: [] }));
+throws('towns: blank entry rejected', () => applyChanges(files, { towns: ['Norwich', '   '] }));
+throws('towns: duplicate rejected', () => applyChanges(files, { towns: ['Norwich', 'norwich'] }));
+throws('towns: over-long name rejected', () => applyChanges(files, { towns: ['x'.repeat(60)] }));
+throws('towns: markup in a name rejected', () => applyChanges(files, { towns: ['<script>x</script>'] }));
+
+{
+  // Even if validation were bypassed, output must stay inert.
+  const res = applyChanges(files, { towns: ['Norwich & District', 'Diss'] });
+  ok('towns: ampersand is escaped', res.files['contact.html'].includes('<li>Norwich &amp; District</li>'));
 }
 
 /* ---------- helpers ---------- */

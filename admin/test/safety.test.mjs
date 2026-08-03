@@ -118,6 +118,35 @@ for (const page of LIVE_PAGES) {
      'shorter names could otherwise corrupt longer ones');
 }
 
+/* ---------- 2d. Crop tool, and confirming a change went live ---------- */
+
+{
+  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8');
+
+  // The frame is the canvas, so the preview cannot disagree with the result.
+  ok('crop: the tool exists', html.includes('async function cropSheet'));
+  ok('crop: one paint routine drives preview and output', /function paint \(c, fw, fh, k\)/.test(html));
+  ok('crop: the image is kept covering the frame', html.includes('function minScale') && html.includes('function clampAll'));
+  ok('crop: panning is clamped, so no empty corners', /tx = Math\.max\(-bx, Math\.min\(bx, tx\)\)/.test(html));
+  ok('crop: pinch to zoom', html.includes('startDist'));
+  ok('crop: straighten control', html.includes('cropAngle'));
+  ok('crop: quarter turns', html.includes('data-rot'));
+  ok('crop: cancelling leaves nothing uploaded', html.includes('resolve(null)') && html.includes('if (!up)'));
+
+  // Both crop shapes must be locked: the before/after halves have to match.
+  ok('crop: before/after is 3:4', /ba:\s*\{ ratio: 3 \/ 4/.test(html));
+  ok('crop: tiles are 4:3', /tile:\s*\{ ratio: 4 \/ 3/.test(html));
+
+  ok('live: a needle is derived from the change', html.includes('function livenessNeedle'));
+  ok('live: the real page is polled', html.includes('async function confirmLive'));
+  ok('live: polling defeats the cache', /cache: 'no-store'/.test(html) && html.includes('?live='));
+  ok('live: it gives up rather than spinning forever', /attempt < 22/.test(html));
+  ok('live: it says so when the change appears', html.includes('It is live on the website now'));
+
+  ok('towns: the editor has a screen for them', html.includes('function viewTowns'));
+  ok('towns: edits are tracked', html.includes("e.target.id === 'townsBox'"));
+}
+
 /* ---------- 3. reviews-v2.js still parses and still works ---------- */
 
 {
