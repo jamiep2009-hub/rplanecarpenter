@@ -206,6 +206,13 @@ main{flex:1;padding:20px 18px calc(150px + var(--safe-b))}
 .imgpick button:hover{border-color:var(--gold)}
 .imgpick button.on{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 26%,transparent)}
 .imgpick img{width:100%;height:84px;object-fit:cover}
+.gauge{display:flex;align-items:center;gap:10px}
+.ticks{display:flex;gap:3px;flex:1}
+.tick{height:4px;flex:1;border-radius:2px;background:var(--line);transition:background .25s}
+.tick.on{background:var(--warn)}
+.tick.on.good{background:var(--gold)}
+.tick.on.strong{background:var(--ok)}
+.gauge-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);min-width:8ch;text-align:right}
 .linkbox{
   font-family:var(--mono);font-size:12px;line-height:1.6;word-break:break-all;
   padding:12px 13px;border-radius:10px;background:var(--surface-2);
@@ -226,6 +233,7 @@ main{flex:1;padding:20px 18px calc(150px + var(--safe-b))}
 
 <script type="module">
 import { GitHub } from './github.js';
+import { seal, unseal, suggestPassphrase, strength } from './crypto.js';
 import { readModel, applyChanges } from './content.js';
 import {
   EDITABLE_FILES, IMAGE_DIR, GALLERY_CATEGORIES, BENTO_SIZES, groupedTextFields,
@@ -237,6 +245,7 @@ import {
 const REPO = { owner: 'jamiep2009-hub', repo: 'rplanecarpenter', branch: 'main' };
 const SITE = location.origin;
 const KEY_STORE = 'rpc-editor-key';
+const LOCK_FILE = 'admin/key.enc';   // the password-protected access key
 
 /* ============================================================
    Icons
@@ -274,8 +283,16 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&l
 const S = {
   gh:null, ready:false, loading:true, view:'menu', group:null,
   files:null, sha:null, base:null, draft:null, images:[], schema:null, busy:false,
+  lock:null,        // the encrypted key from the website, if one exists
+  mode:'checking',  // checking | password | key | ready
 };
 const clone = o => JSON.parse(JSON.stringify(o));
+
+/* A just-uploaded photo is not on the live site yet — GitHub Pages needs
+   about a minute to rebuild. Show it from the local blob until then, so
+   the editor never displays a broken image for something you just added. */
+const freshUrls = new Map();
+const imgUrl = path => freshUrls.get(path) || `${SITE}/${path}`;
 const $ = id => document.getElementById(id);
 
 /* ============================================================
@@ -387,6 +404,7 @@ async function uploadPhoto (file, opts, prefix) {
   await S.gh.commit({ binaryFiles, message: 'add a photo' });
 
   const path = `${IMAGE_DIR}/${name}`;
+  freshUrls.set(path, URL.createObjectURL(out.main));
   S.images.unshift({ path, size: out.main.size });
   return { path, width: out.width, height: out.height };
 }
@@ -394,6 +412,25 @@ async function uploadPhoto (file, opts, prefix) {
 /* ============================================================
    First-run setup
    ============================================================ */
+function viewPassword (err) {
+  return `<div class="setup"><form class="setup-card" id="pwForm">
+    <div class="setup-mark">RP</div>
+    <h1>Website Editor</h1>
+    <p class="lede">R. Plane Carpenter</p>
+    <div class="field">
+      <label for="pw">Password</label>
+      <input class="inp" id="pw" type="password" autocomplete="current-password" required autofocus>
+      ${err ? `<div class="hint" style="color:var(--err);font-weight:700">${esc(err)}</div>` : ''}
+    </div>
+    <button class="btn btn-gold btn-block" type="submit" id="pwBtn">Sign in</button>
+    <div class="privacy">
+      ${svg(I.lock, 15)}
+      <span>Signing in unlocks this website's editor. Nothing you type is sent anywhere.</span>
+    </div>
+    <button type="button" class="btn btn-block" data-usekey="1" style="margin-top:10px;border:0;background:none;color:var(--ink-3);font-size:13px">Use an access key instead</button>
+  </form></div>`;
+}
+
 function viewSetup (err) {
   return `<div class="setup"><form class="setup-card" id="setupForm">
     <div class="setup-mark">RP</div>
@@ -411,6 +448,7 @@ function viewSetup (err) {
       ${err ? `<div class="hint" style="color:var(--err);font-weight:700">${esc(err)}</div>` : ''}
     </div>
     <button class="btn btn-gold btn-block" type="submit" id="setupBtn">Connect</button>
+    ${S.lock ? `<button type="button" class="btn btn-block" data-usepw="1" style="margin-top:10px;border:0;background:none;color:var(--ink-3);font-size:13px">Sign in with a password instead</button>` : ''}
     <div class="privacy">
       ${svg(I.lock, 15)}
       <span>The key is stored only on this device and is sent nowhere except GitHub. It can be revoked at any time from your GitHub settings.</span>
@@ -444,6 +482,11 @@ function viewMenu () {
   </div>
   <div class="sec-title">Site</div>
   <div class="menu">
+    <button class="menu-item" data-go="login">
+      <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.lock, 20)}</span>
+      <span class="menu-txt"><strong>Password login</strong><span>${S.lock ? 'Change the password' : 'Sign in with a password instead of a key'}</span></span>
+      ${svg(I.chev, 17)}
+    </button>
     <button class="menu-item" data-go="handover">
       <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.share, 20)}</span>
       <span class="menu-txt"><strong>Set up another device</strong><span>Give someone else access to this editor</span></span>
@@ -475,7 +518,7 @@ function tileRows (list, kind) {
   return list.map((t, i) => `
     <div class="card"><div class="card-b">
       <div class="row">
-        <img class="thumb" src="${SITE}/${esc(t.src)}" alt="" loading="lazy">
+        <img class="thumb" src="${esc(imgUrl(t.src))}" alt="" loading="lazy">
         <div class="row-main">
           <div class="t">${esc(t.title)}</div>
           <div class="s">${esc(t.alt || 'No description')}</div>
@@ -509,8 +552,8 @@ function viewBeforeAfter () {
   const rows = list.length ? list.map((p, i) => `
     <div class="card"><div class="card-b">
       <div class="ba-thumbs">
-        <figure><figcaption>Before</figcaption><img src="${SITE}/${esc(p.before)}" alt="" loading="lazy"></figure>
-        <figure><figcaption>After</figcaption><img src="${SITE}/${esc(p.after)}" alt="" loading="lazy"></figure>
+        <figure><figcaption>Before</figcaption><img src="${esc(imgUrl(p.before))}" alt="" loading="lazy"></figure>
+        <figure><figcaption>After</figcaption><img src="${esc(imgUrl(p.after))}" alt="" loading="lazy"></figure>
       </div>
       <div class="row-main" style="margin-top:12px">
         <div class="t">${esc(p.title)}</div>
@@ -621,6 +664,33 @@ function viewHandover () {
     </div></div>`;
 }
 
+function viewLogin () {
+  const has = !!S.lock;
+  return `<div class="note">${svg(I.warn,17)}<span>${has
+    ? 'A password login is already set up. Setting a new one replaces it everywhere &mdash; anyone using the old password will need the new one.'
+    : 'This lets you sign in with just a password on any device, instead of pasting an access key.'}</span></div>
+
+    <div class="card"><div class="card-b">
+      <div class="field">
+        <label>Password</label>
+        <input class="inp" id="newPw" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Choose a strong password">
+        <div class="gauge" style="margin-top:9px"><div class="ticks" id="pwTicks"></div><span class="gauge-label" id="pwLabel">&mdash;</span></div>
+        <div class="hint">Long beats complicated. Four unrelated words is stronger than one clever word.</div>
+      </div>
+      <button class="btn btn-block" data-suggest="1">${svg(I.undo,15)} Suggest a passphrase</button>
+    </div></div>
+
+    <div class="card"><div class="card-b">
+      <p style="margin:0;font-size:14px;color:var(--ink-2)">Your access key gets locked with this password and stored in the website. Anyone with the password can then edit the site from any device &mdash; no key needed.</p>
+    </div></div>
+
+    <button class="btn btn-gold btn-block" data-savelogin="1" style="margin-top:14px">${has ? 'Replace the password' : 'Create the login'}</button>
+
+    <div class="note" style="margin-top:16px;background:var(--surface-2);border-color:var(--line);color:var(--ink-3)">
+      ${svg(I.lock,17)}<span>The locked key is a file on the website, so a weak password could be guessed at by someone who finds it. That is why a strong one is required.</span>
+    </div>`;
+}
+
 function viewContact () {
   const c = S.draft.contact || {};
   return `<div class="note">${svg(I.warn,17)}<span>Changing these updates your phone number or email <strong>everywhere</strong> on the website, including the WhatsApp button.</span></div>
@@ -641,13 +711,20 @@ const TITLES = {
   menu:'Website Editor', gallery:'Gallery photos', bento:'Homepage photos',
   beforeafter:'Before & After', reviews:'Reviews', text:'Page wording', contact:'Contact details',
   handover:'Set up another device',
+  login:'Password login',
 };
 
-function render (setupError) {
+function render (err) {
   const root = $('root');
   if (!S.ready) {
-    if (S.loading) { root.innerHTML = `<div class="center"><div class="spinner"></div><span>Loading your website…</span></div>`; return; }
-    root.innerHTML = viewSetup(setupError); syncBar(); return;
+    if (S.loading || S.mode === 'checking') {
+      root.innerHTML = `<div class="center"><div class="spinner"></div><span>Loading your website…</span></div>`;
+      return;
+    }
+    root.innerHTML = S.mode === 'password' ? viewPassword(err) : viewSetup(err);
+    syncBar();
+    if (S.mode === 'password') setTimeout(() => $('pw')?.focus(), 60);
+    return;
   }
   const body =
     S.view === 'menu' ? viewMenu() :
@@ -657,7 +734,8 @@ function render (setupError) {
     S.view === 'reviews' ? viewReviews() :
     S.view === 'text' ? viewText() :
     S.view === 'contact' ? viewContact() :
-    S.view === 'handover' ? viewHandover() : '';
+    S.view === 'handover' ? viewHandover() :
+    S.view === 'login' ? viewLogin() : '';
 
   root.innerHTML = `<div class="app">
     <header class="topbar">
@@ -697,7 +775,7 @@ function confirmSheet (title, message, confirmLabel = 'Delete') {
 
 const imagePicker = selected => `<div class="imgpick">${S.images.map(im =>
   `<button type="button" data-pick="${esc(im.path)}" class="${im.path === selected ? 'on' : ''}">
-    <img src="${SITE}/${esc(im.path)}" alt="" loading="lazy"></button>`).join('')}</div>`;
+    <img src="${esc(imgUrl(im.path))}" alt="" loading="lazy"></button>`).join('')}</div>`;
 
 function editTile (kind, index) {
   const isNew = index == null;
@@ -714,7 +792,7 @@ function editTile (kind, index) {
 
   const w = sheet(isNew ? 'Add photo' : 'Edit photo', `
     <div class="field"><label>Photo</label>
-      <div id="pv" style="margin-bottom:10px">${t.src ? `<img src="${SITE}/${esc(t.src)}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">` : ''}</div>
+      <div id="pv" style="margin-bottom:10px">${t.src ? `<img src="${esc(imgUrl(t.src))}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">` : ''}</div>
       <div class="drop" id="drop">${svg(I.up2,26)}<strong>Choose a photo</strong><span>Straight from your camera roll</span></div>
       <input type="file" accept="image/*" id="file" class="hidden">
       ${S.images.length ? `<details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;color:var(--ink-3);font-weight:600">Or reuse a photo already on the site</summary><div style="margin-top:10px">${imagePicker(t.src)}</div></details>` : ''}
@@ -737,7 +815,7 @@ function editTile (kind, index) {
     try {
       const up = await uploadPhoto(file, { maxEdge:1600, quality:0.82 }, kind);
       t.src = up.path; t.width = up.width; t.height = up.height;
-      w.querySelector('#pv').innerHTML = `<img src="${SITE}/${esc(up.path)}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
+      w.querySelector('#pv').innerHTML = `<img src="${esc(imgUrl(up.path))}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
       drop.innerHTML = `${svg(I.check,26)}<strong>Photo ready</strong><span>Tap to choose a different one</span>`;
     } catch (err) {
       toast(err.message, 'err');
@@ -750,7 +828,7 @@ function editTile (kind, index) {
     if (pick) {
       t.src = pick.dataset.pick;
       w.querySelectorAll('.imgpick button').forEach(b => b.classList.toggle('on', b === pick));
-      w.querySelector('#pv').innerHTML = `<img src="${SITE}/${esc(t.src)}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
+      w.querySelector('#pv').innerHTML = `<img src="${esc(imgUrl(t.src))}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
       return;
     }
     if (!e.target.closest('[data-save]')) return;
@@ -774,7 +852,7 @@ function editPair (index) {
 
   const slot = (which, label) => `
     <div class="field"><label>${label} photo</label>
-      <div id="pv-${which}" style="margin-bottom:8px">${p[which] ? `<img src="${SITE}/${esc(p[which])}" style="width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">` : ''}</div>
+      <div id="pv-${which}" style="margin-bottom:8px">${p[which] ? `<img src="${esc(imgUrl(p[which]))}" style="width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">` : ''}</div>
       <div class="drop" data-drop="${which}">${svg(I.up2,24)}<strong>Choose ${label.toLowerCase()} photo</strong></div>
       <input type="file" accept="image/*" data-file="${which}" class="hidden"></div>`;
 
@@ -796,7 +874,7 @@ function editPair (index) {
       try {
         const up = await uploadPhoto(file, { maxEdge:1440, ratio:3/4, quality:0.84 }, 'ba');
         p[which] = up.path;
-        w.querySelector(`#pv-${which}`).innerHTML = `<img src="${SITE}/${esc(up.path)}" style="width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
+        w.querySelector(`#pv-${which}`).innerHTML = `<img src="${esc(imgUrl(up.path))}" style="width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
         drop.innerHTML = `${svg(I.check,24)}<strong>Ready</strong>`;
       } catch (err) {
         toast(err.message, 'err');
@@ -949,6 +1027,23 @@ async function load () {
    Events
    ============================================================ */
 document.addEventListener('submit', async e => {
+  if (e.target.id === 'pwForm') {
+    e.preventDefault();
+    const btn = $('pwBtn');
+    btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+    try {
+      // Deliberately slow by design — this is what makes guessing costly.
+      const key = await unseal(S.lock, $('pw').value);
+      S.gh = new GitHub({ token: key, ...REPO });
+      localStorage.setItem(KEY_STORE, key);
+      await load();
+    } catch (err) {
+      btn.disabled = false; btn.textContent = 'Sign in';
+      render(err.message);
+      setTimeout(() => { const el = $('pw'); if (el) { el.value = ''; el.focus(); } }, 30);
+    }
+    return;
+  }
   if (e.target.id !== 'setupForm') return;
   e.preventDefault();
   const btn = $('setupBtn');
@@ -1017,6 +1112,51 @@ document.addEventListener('click', async e => {
     list.splice(i, 1); render(); return;
   }
 
+  if (e.target.closest('[data-usekey]')) { S.mode = 'key'; render(); return; }
+  if (e.target.closest('[data-usepw]')) { S.mode = 'password'; render(); return; }
+
+  if (e.target.closest('[data-suggest]')) {
+    const el = $('newPw');
+    el.value = suggestPassphrase();
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
+  }
+
+  const saveLogin = e.target.closest('[data-savelogin]');
+  if (saveLogin) {
+    const pw = $('newPw').value;
+    const st = strength(pw);
+    if (!st.ok) return toast('That password is not strong enough. Try the suggested passphrase.', 'err', 5200);
+    if (!(await confirmSheet(
+      S.lock ? 'Replace the password?' : 'Create the login?',
+      S.lock ? 'Anyone using the old password will need the new one.'
+             : 'You will be able to sign in with just this password, on any device.',
+      S.lock ? 'Replace it' : 'Create it'))) return;
+
+    saveLogin.disabled = true;
+    const label = saveLogin.innerHTML;
+    saveLogin.innerHTML = '<div class="spinner"></div>';
+    try {
+      const key = localStorage.getItem(KEY_STORE);
+      if (!key) throw new Error('No access key is stored on this device.');
+      const envelope = await seal(key, pw);
+      await S.gh.commit({
+        textFiles: { [LOCK_FILE]: JSON.stringify(envelope, null, 2) + '\n' },
+        message: S.lock ? 'update the password login' : 'create the password login',
+      });
+      S.lock = envelope;
+      toast('Password login ready. It works on any device in about a minute.', 'ok', 6000);
+      $('newPw').value = '';
+      S.view = 'menu';
+      render();
+    } catch (err) {
+      toast(err.message, 'err', 6000);
+    } finally {
+      saveLogin.disabled = false; saveLogin.innerHTML = label;
+    }
+    return;
+  }
+
   const copyLink = e.target.closest('[data-copylink]');
   if (copyLink) {
     const text = $('linkBox').textContent;
@@ -1070,7 +1210,20 @@ document.addEventListener('input', e => {
     return;
   }
   const ct = e.target.closest('[data-ct]');
-  if (ct) { S.draft.contact[ct.dataset.ct] = ct.value; syncBar(); }
+  if (ct) { S.draft.contact[ct.dataset.ct] = ct.value; syncBar(); return; }
+
+  if (e.target.id === 'newPw') {
+    const st = strength(e.target.value);
+    const ticks = $('pwTicks');
+    if (!ticks) return;
+    if (!ticks.children.length) for (let i = 0; i < 4; i++) ticks.appendChild(document.createElement('span'));
+    const filled = st.bits < 45 ? 1 : st.bits < 60 ? 2 : st.bits < 75 ? 3 : 4;
+    [...ticks.children].forEach((t, i) => {
+      t.className = 'tick' + (i < filled && e.target.value ? ' on' : '')
+        + (filled >= 3 ? ' good' : '') + (filled === 4 ? ' strong' : '');
+    });
+    $('pwLabel').textContent = e.target.value ? st.label : '—';
+  }
 });
 
 /* ---- boot ----
@@ -1088,18 +1241,36 @@ function keyFromLink () {
   return key && key.length > 20 ? key : null;
 }
 
-const linked = keyFromLink();
-const saved = linked || localStorage.getItem(KEY_STORE);
-
-if (linked) localStorage.setItem(KEY_STORE, linked);
-
-if (saved) {
-  S.gh = new GitHub({ token: saved, ...REPO });
-  load().then(() => { if (linked && S.ready) toast('This device is set up. You can start editing.', 'ok', 5200); });
-} else {
-  S.loading = false;
-  render();
+/** Is a password login set up on this website? */
+async function fetchLock () {
+  try {
+    const res = await fetch(`./key.enc?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data && data.v ? data : null;
+  } catch {
+    return null;                 // no login configured — that is fine
+  }
 }
+
+(async function boot () {
+  const linked = keyFromLink();
+  if (linked) localStorage.setItem(KEY_STORE, linked);
+  const saved = linked || localStorage.getItem(KEY_STORE);
+
+  S.lock = await fetchLock();
+
+  if (saved) {
+    S.gh = new GitHub({ token: saved, ...REPO });
+    await load();
+    if (linked && S.ready) toast('This device is set up. You can start editing.', 'ok', 5200);
+    return;
+  }
+
+  S.loading = false;
+  S.mode = S.lock ? 'password' : 'key';
+  render();
+})();
 </script>
 </body>
 </html>
