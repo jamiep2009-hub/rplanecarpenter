@@ -15,6 +15,7 @@
   var projectEl = section.querySelector('.rv-project');
   var chips     = section.querySelectorAll('.rv-chip');
 
+  /* ADMIN:reviews:start */
   var reviews = [
     { quote: "First class work carried out by Robbie. Very reliable and tidy. We were extremely happy with our kitchen which he fitted. Would highly recommend.",
       project: "Bespoke kitchen", initial: "J" },
@@ -29,6 +30,7 @@
     { quote: "Not only was his own work of the highest quality, but he also organised the other trades, ensuring the project ran like clockwork. We would happily employ Robbie again and have no hesitation in recommending him.",
       project: "Whole-room install", initial: "D" },
   ];
+  /* ADMIN:reviews:end */
 
   var i = 0;
   var timer = null;

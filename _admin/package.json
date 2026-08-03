@@ -1,0 +1,16 @@
+{
+  "name": "rpc-admin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website editor for R. Plane Carpenter — a Cloudflare Worker that edits the static site via the GitHub API.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/run.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "hash": "node scripts/hash-password.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

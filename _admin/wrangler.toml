@@ -1,0 +1,26 @@
+name = "rpc-admin"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# The editor UI is a single self-contained HTML file imported as text.
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = false
+
+[vars]
+REPO_OWNER  = "jamiep2009-hub"
+REPO_NAME   = "rplanecarpenter"
+REPO_BRANCH = "main"
+SITE_ORIGIN = "https://rplanecarpenter.co.uk"
+
+# Secrets are NOT stored here. Set them once with:
+#   npx wrangler secret put GITHUB_TOKEN
+#   npx wrangler secret put SESSION_SECRET
+#   npx wrangler secret put ADMIN_PASSWORD_HASH
+#   npx wrangler secret put ADMIN_PASSWORD_SALT
+#
+# Optional custom domain — see README.md
+# [[routes]]
+# pattern = "admin.rplanecarpenter.co.uk"
+# custom_domain = true

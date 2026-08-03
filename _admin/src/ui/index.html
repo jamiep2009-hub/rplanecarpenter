@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#14100c">
+<title>Website Editor · R. Plane Carpenter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Design tokens
+   ============================================================ */
+:root{
+  --gold:#c4873d; --gold-soft:#e8c89a; --gold-dark:#9f6a27;
+  --ink:#14100c; --ink-2:#3f382f; --ink-3:#6b6357;
+  --line:#e6e0d6; --line-2:#efeae2;
+  --bg:#faf8f5; --surface:#fff; --surface-2:#f5f1ea;
+  --ok:#2f7d59; --ok-bg:#e8f5ee;
+  --warn:#a35a12; --warn-bg:#fdf3e6;
+  --err:#b3341f; --err-bg:#fdecea;
+  --r:14px; --r-sm:10px;
+  --sh:0 1px 2px rgba(20,16,12,.05),0 4px 16px rgba(20,16,12,.06);
+  --sh-lg:0 8px 40px rgba(20,16,12,.14);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ink:#f4efe8; --ink-2:#c8c0b4; --ink-3:#948b7d;
+    --line:#2e2a25; --line-2:#252119;
+    --bg:#131110; --surface:#1c1916; --surface-2:#232019;
+    --ok-bg:#16281f; --warn-bg:#2a1f12; --err-bg:#2c1714;
+    --sh:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+    --sh-lg:0 8px 40px rgba(0,0,0,.5);
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:Nunito,system-ui,-apple-system,sans-serif;
+  background:var(--bg); color:var(--ink);
+  font-size:16px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+}
+h1,h2,h3{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;margin:0;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+img{max-width:100%;display:block}
+
+/* ============================================================
+   App shell
+   ============================================================ */
+.app{max-width:780px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.topbar{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(12px);
+  -webkit-backdrop-filter:saturate(1.4) blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.topbar h1{font-size:19px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .sub{display:block;font-family:Nunito;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.back{
+  display:grid;place-items:center;width:38px;height:38px;flex:none;
+  border-radius:50%;border:1px solid var(--line);background:var(--surface);
+  cursor:pointer;transition:background .15s,border-color .15s;
+}
+.back:hover{background:var(--surface-2);border-color:var(--gold)}
+.back svg{width:18px;height:18px}
+main{flex:1;padding:20px 18px calc(150px + var(--safe-b))}
+
+/* ============================================================
+   Menu
+   ============================================================ */
+.menu{display:flex;flex-direction:column;gap:10px}
+.menu-item{
+  display:flex;align-items:center;gap:16px;width:100%;
+  padding:18px 18px;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  cursor:pointer;box-shadow:var(--sh);
+  transition:transform .16s cubic-bezier(.2,.7,.3,1),border-color .16s,box-shadow .16s;
+}
+.menu-item:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:var(--sh-lg)}
+.menu-item:active{transform:translateY(0)}
+.menu-ico{
+  display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:12px;
+  background:linear-gradient(145deg,var(--gold-soft),var(--gold));color:#231a0f;
+}
+.menu-ico svg{width:21px;height:21px}
+.menu-txt{flex:1;min-width:0}
+.menu-txt strong{display:block;font-size:16px;font-weight:700}
+.menu-txt span{display:block;font-size:13px;color:var(--ink-3);margin-top:1px}
+.menu-item .chev{width:17px;height:17px;color:var(--ink-3);flex:none}
+
+/* ============================================================
+   Cards / rows
+   ============================================================ */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.card + .card{margin-top:12px}
+.card-b{padding:16px}
+.row{display:flex;gap:14px;align-items:flex-start}
+.thumb{
+  width:82px;height:82px;flex:none;border-radius:var(--r-sm);
+  object-fit:cover;background:var(--surface-2);border:1px solid var(--line);
+}
+.thumb.tall{height:104px}
+.row-main{flex:1;min-width:0}
+.row-main .t{font-weight:700;font-size:15px;line-height:1.3;word-break:break-word}
+.row-main .s{font-size:12.5px;color:var(--ink-3);margin-top:3px;word-break:break-word}
+.pill{
+  display:inline-block;padding:2px 9px;border-radius:99px;
+  font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);margin-top:7px;
+}
+.pill.gold{background:color-mix(in srgb,var(--gold) 14%,transparent);color:var(--gold-dark);border-color:color-mix(in srgb,var(--gold) 34%,transparent)}
+@media (prefers-color-scheme:dark){.pill.gold{color:var(--gold-soft)}}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-2)}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:11px 17px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);font-size:14px;font-weight:600;cursor:pointer;
+  transition:background .15s,border-color .15s,transform .1s,opacity .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:hover{background:var(--surface-2);border-color:var(--gold)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn svg{width:15px;height:15px;flex:none}
+.btn-gold{background:linear-gradient(145deg,var(--gold),var(--gold-dark));border-color:var(--gold-dark);color:#fff}
+.btn-gold:hover{background:linear-gradient(145deg,var(--gold-soft),var(--gold));border-color:var(--gold)}
+.btn-sm{padding:7px 12px;font-size:12.5px;border-radius:8px}
+.btn-danger{color:var(--err);border-color:color-mix(in srgb,var(--err) 30%,var(--line))}
+.btn-danger:hover{background:var(--err-bg);border-color:var(--err)}
+.btn-block{width:100%}
+.btn-ghost{background:transparent;border-color:transparent}
+.btn-ghost:hover{background:var(--surface-2);border-color:var(--line)}
+
+/* ============================================================
+   Fields
+   ============================================================ */
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px}
+.field .hint{font-size:12px;color:var(--ink-3);margin-top:5px;font-weight:400}
+.inp,.ta,.sel{
+  width:100%;padding:11px 13px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);
+  transition:border-color .15s,box-shadow .15s;font-size:15px;
+}
+.inp:focus,.ta:focus,.sel:focus{
+  outline:none;border-color:var(--gold);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 20%,transparent);
+}
+.ta{resize:vertical;min-height:88px;line-height:1.55}
+.sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6357' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;background-size:15px;padding-right:38px}
+.count{float:right;font-size:11px;color:var(--ink-3);font-weight:600}
+.count.over{color:var(--err)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+
+/* ============================================================
+   Group / accordion
+   ============================================================ */
+.grp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--sh)}
+.grp-h{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:15px 16px;background:none;border:0;cursor:pointer;text-align:left;
+}
+.grp-h:hover{background:var(--surface-2)}
+.grp-h strong{flex:1;font-size:14.5px;font-weight:700}
+.grp-h .n{font-size:11.5px;color:var(--ink-3);font-weight:600}
+.grp-h .caret{width:16px;height:16px;color:var(--ink-3);transition:transform .22s}
+.grp.open .caret{transform:rotate(180deg)}
+.grp-b{display:none;padding:4px 16px 18px;border-top:1px solid var(--line-2)}
+.grp.open .grp-b{display:block}
+.grp.dirty .grp-h strong::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-left:8px;vertical-align:middle}
+
+/* ============================================================
+   Publish bar
+   ============================================================ */
+.bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  padding:12px 16px calc(12px + var(--safe-b));
+  background:color-mix(in srgb,var(--surface) 94%,transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+  transform:translateY(120%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+}
+.bar.show{transform:none}
+.bar-in{max-width:780px;margin:0 auto;display:flex;align-items:center;gap:10px}
+.bar-txt{flex:1;min-width:0;font-size:13px;font-weight:600}
+.bar-txt small{display:block;font-weight:400;color:var(--ink-3);font-size:11.5px}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+.toasts{position:fixed;left:50%;bottom:calc(96px + var(--safe-b));transform:translateX(-50%);z-index:70;display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:440px;pointer-events:none}
+.toast{
+  display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--sh-lg);
+  font-size:13.5px;font-weight:600;animation:pop .28s cubic-bezier(.2,.9,.3,1);
+}
+.toast svg{width:17px;height:17px;flex:none;margin-top:1px}
+.toast.ok{background:var(--ok-bg);border-color:color-mix(in srgb,var(--ok) 34%,transparent);color:var(--ok)}
+.toast.err{background:var(--err-bg);border-color:color-mix(in srgb,var(--err) 34%,transparent);color:var(--err)}
+.toast.warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 34%,transparent);color:var(--warn)}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+
+/* ============================================================
+   Modal / sheet
+   ============================================================ */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(15,12,9,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+@media (min-width:620px){.scrim{align-items:center}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{
+  width:100%;max-width:620px;max-height:92vh;overflow:auto;
+  background:var(--bg);border-radius:20px 20px 0 0;
+  animation:up .3s cubic-bezier(.2,.8,.2,1);
+  padding-bottom:calc(16px + var(--safe-b));
+}
+@media (min-width:620px){.sheet{border-radius:18px;max-height:88vh}}
+@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+.sheet-h{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:16px 18px;background:var(--bg);border-bottom:1px solid var(--line)}
+.sheet-h h2{flex:1;font-size:19px}
+.sheet-b{padding:18px}
+.sheet-f{display:flex;gap:9px;padding:14px 18px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--bg)}
+.sheet-f .btn{flex:1}
+.frame{width:100%;height:min(74vh,780px);border:0;background:#fff;display:block}
+
+/* ============================================================
+   Login
+   ============================================================ */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:34px 28px;box-shadow:var(--sh-lg);text-align:center}
+.login-mark{width:60px;height:60px;margin:0 auto 18px;border-radius:16px;background:linear-gradient(145deg,var(--gold-soft),var(--gold-dark));display:grid;place-items:center;color:#231a0f;font-family:"Cormorant Garamond",serif;font-size:27px;font-weight:600}
+.login-card h1{font-size:25px;margin-bottom:5px}
+.login-card p{color:var(--ink-3);font-size:13.5px;margin:0 0 22px}
+.login-card .field{text-align:left}
+
+/* ============================================================
+   Misc
+   ============================================================ */
+.empty{text-align:center;padding:44px 20px;color:var(--ink-3)}
+.empty svg{width:38px;height:38px;margin-bottom:12px;opacity:.4}
+.empty p{margin:0 0 16px;font-size:14px}
+.spinner{width:17px;height:17px;border:2px solid color-mix(in srgb,currentColor 25%,transparent);border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.center{display:grid;place-items:center;min-height:56vh;gap:14px;color:var(--ink-3)}
+.note{display:flex;gap:10px;padding:13px 15px;border-radius:12px;background:var(--warn-bg);border:1px solid color-mix(in srgb,var(--warn) 26%,transparent);font-size:13px;color:var(--warn);margin-bottom:16px;font-weight:600}
+.note svg{width:17px;height:17px;flex:none;margin-top:1px}
+.sec-title{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:22px 0 10px}
+.sec-title:first-child{margin-top:0}
+.drop{border:2px dashed var(--line);border-radius:var(--r);padding:26px 18px;text-align:center;transition:border-color .18s,background .18s;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 6%,transparent)}
+.drop svg{width:26px;height:26px;color:var(--gold);margin-bottom:8px}
+.drop strong{display:block;font-size:14.5px}
+.drop span{display:block;font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.hidden{display:none!important}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ba-thumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ba-thumbs figure{margin:0}
+.ba-thumbs figcaption{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.ba-thumbs img{width:100%;height:112px;object-fit:cover;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface-2)}
+.imgpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;max-height:290px;overflow:auto;padding:3px}
+.imgpick button{padding:0;border:2px solid transparent;border-radius:var(--r-sm);background:none;cursor:pointer;overflow:hidden;line-height:0}
+.imgpick button:hover{border-color:var(--gold)}
+.imgpick button.on{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 26%,transparent)}
+.imgpick img{width:100%;height:84px;object-fit:cover}
+</style>
+</head>
+<body>
+
+<div id="root"><div class="center"><div class="spinner"></div></div></div>
+<div class="toasts" id="toasts"></div>
+<div class="bar" id="bar"><div class="bar-in">
+  <div class="bar-txt" id="barTxt"></div>
+  <button class="btn btn-sm" id="btnPreview">Preview</button>
+  <button class="btn btn-gold btn-sm" id="btnPublish">Publish</button>
+</div></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   Icons
+   ============================================================ */
+const I = {
+  photo:'<path d="M3 5h18v14H3z"/><circle cx="8.5" cy="10" r="1.6"/><path d="m21 16-5-5-5 5-3-3-5 5"/>',
+  star:'<path d="M12 2.5l2.9 6.4 7 .7-5.3 4.6 1.6 6.8L12 17.4 5.8 21l1.6-6.8L2.1 9.6l7-.7z"/>',
+  text:'<path d="M4 6h16M4 12h16M4 18h11"/>',
+  swap:'<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+  home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>',
+  chev:'<path d="m9 18 6-6-6-6"/>',
+  down:'<path d="m6 9 6 6 6-6"/>',
+  back:'<path d="m15 18-6-6 6-6"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  up:'<path d="m18 15-6-6-6 6"/>',
+  dn:'<path d="m6 9 6 6 6-6"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  bin:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  warn:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
+  undo:'<path d="M3 7v6h6"/><path d="M3.5 13a9 9 0 1 0 2.1-5.7L3 10"/>',
+  eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  up2:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+};
+const svg = (d, w = 20) =>
+  `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+/* ============================================================
+   State
+   ============================================================ */
+const S = {
+  authed:false, loading:true, view:'menu', group:null,
+  sha:null, siteOrigin:'', schema:null,
+  base:null,     // pristine model from the server
+  draft:null,    // working copy
+  images:[], busy:false,
+};
+
+const clone = o => JSON.parse(JSON.stringify(o));
+const $ = id => document.getElementById(id);
+
+/* ============================================================
+   API
+   ============================================================ */
+async function api (path, opts = {}) {
+  const res = await fetch(path, {
+    credentials:'same-origin',
+    headers: opts.body ? { 'Content-Type':'application/json' } : {},
+    ...opts,
+  });
+  if (res.status === 401) { S.authed = false; render(); throw new Error('Please log in again.'); }
+  const ct = res.headers.get('Content-Type') || '';
+  if (!ct.includes('application/json')) {
+    if (!res.ok) throw new Error('Something went wrong. Please try again.');
+    return res.text();
+  }
+  const data = await res.json();
+  if (!res.ok || data.ok === false) throw new Error(data.error || 'Something went wrong.');
+  return data;
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+function toast (msg, kind = 'ok', ms = 3600) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.innerHTML = svg(kind === 'ok' ? I.check : kind === 'err' ? I.warn : I.warn, 17) + '<span>' + esc(msg) + '</span>';
+  el.style.pointerEvents = 'auto';
+  $('toasts').appendChild(el);
+  setTimeout(() => { el.style.transition = 'opacity .3s, transform .3s'; el.style.opacity = '0'; el.style.transform = 'translateY(8px)'; setTimeout(() => el.remove(), 320); }, ms);
+}
+
+/* ============================================================
+   Change tracking
+   ============================================================ */
+function changes () {
+  if (!S.base || !S.draft) return {};
+  const out = {};
+
+  const text = {};
+  for (const [k, v] of Object.entries(S.draft.text || {})) {
+    if (JSON.stringify(v) !== JSON.stringify(S.base.text[k])) text[k] = v;
+  }
+  if (Object.keys(text).length) out.text = text;
+
+  for (const key of ['gallery','bento','beforeafter','reviews']) {
+    if (JSON.stringify(S.draft[key]) !== JSON.stringify(S.base[key])) out[key] = S.draft[key];
+  }
+  if (JSON.stringify(S.draft.contact) !== JSON.stringify(S.base.contact)) out.contact = S.draft.contact;
+
+  return out;
+}
+
+function changeCount () {
+  const c = changes();
+  let n = 0;
+  if (c.text) n += Object.keys(c.text).length;
+  for (const k of ['gallery','bento','beforeafter','reviews','contact']) if (c[k]) n++;
+  return n;
+}
+
+function syncBar () {
+  const n = changeCount();
+  $('bar').classList.toggle('show', n > 0 && S.authed);
+  $('barTxt').innerHTML = n
+    ? `${n} unsaved change${n > 1 ? 's' : ''}<small>Preview, then publish to go live</small>`
+    : '';
+}
+
+window.addEventListener('beforeunload', e => {
+  if (changeCount() > 0) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ============================================================
+   Image processing — EXIF-safe rotate, resize, compress
+   ============================================================ */
+async function processImage (file, { maxEdge = 1600, ratio = null, quality = 0.82 } = {}) {
+  if (!file.type.startsWith('image/')) throw new Error(`${file.name} is not an image.`);
+  if (file.size > 40 * 1024 * 1024) throw new Error(`${file.name} is too large.`);
+
+  // imageOrientation:'from-image' applies the EXIF rotation, which is
+  // what stops phone photos arriving sideways.
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation:'from-image' }); }
+  catch { bmp = await createImageBitmap(file); }
+
+  let sx = 0, sy = 0, sw = bmp.width, sh = bmp.height;
+  if (ratio) {
+    if (sw / sh > ratio) { const nw = Math.round(sh * ratio); sx = Math.round((sw - nw) / 2); sw = nw; }
+    else { const nh = Math.round(sw / ratio); sy = Math.round((sh - nh) / 2); sh = nh; }
+  }
+
+  let dw, dh;
+  if (ratio) { dh = Math.min(maxEdge, sh); dw = Math.round(dh * ratio); }
+  else {
+    const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+    dw = Math.round(sw * scale); dh = Math.round(sh * scale);
+  }
+
+  const c = document.createElement('canvas');
+  c.width = dw; c.height = dh;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, dw, dh);
+
+  const main = await new Promise(r => c.toBlob(r, 'image/jpeg', quality));
+
+  // Tiny blurred placeholder so photos fade in instead of popping.
+  const lc = document.createElement('canvas');
+  const lw = 24; const lh = Math.max(1, Math.round(lw * dh / dw));
+  lc.width = lw; lc.height = lh;
+  lc.getContext('2d').drawImage(c, 0, 0, lw, lh);
+  const lqip = await new Promise(r => lc.toBlob(r, 'image/jpeg', 0.4));
+
+  bmp.close?.();
+  return { main, lqip, width:dw, height:dh };
+}
+
+const toBase64 = blob => new Promise((res, rej) => {
+  const fr = new FileReader();
+  fr.onload = () => res(String(fr.result).split(',')[1]);
+  fr.onerror = () => rej(new Error('Could not read the photo.'));
+  fr.readAsDataURL(blob);
+});
+
+function safeName (original, prefix) {
+  const stamp = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 6);
+  const stem = String(original || 'photo').replace(/\.[^.]+$/, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) || 'photo';
+  return `${prefix}-${stem}-${stamp}${rand}.jpg`;
+}
+
+/** Process + upload; returns the repo-relative path. */
+async function uploadPhoto (file, opts, prefix) {
+  const out = await processImage(file, opts);
+  const name = safeName(file.name, prefix);
+  const lqipName = name.replace(/\.jpg$/, '-lqip.jpg');
+  const payload = [
+    { name, data: await toBase64(out.main) },
+    { name: lqipName, data: await toBase64(out.lqip) },
+  ];
+  const res = await api('/api/upload', { method:'POST', body: JSON.stringify({ files: payload }) });
+  const path = res.paths.find(p => p.endsWith(name));
+  S.images.unshift({ path, size: out.main.size });
+  return { path, width: out.width, height: out.height };
+}
+
+/* ============================================================
+   Views
+   ============================================================ */
+function viewLogin () {
+  return `<div class="login"><form class="login-card" id="loginForm">
+    <div class="login-mark">RP</div>
+    <h1>Website Editor</h1>
+    <p>R. Plane Carpenter</p>
+    <div class="field">
+      <label for="pw">Password</label>
+      <input class="inp" type="password" id="pw" autocomplete="current-password" required autofocus>
+    </div>
+    <button class="btn btn-gold btn-block" type="submit" id="loginBtn">Sign in</button>
+  </form></div>`;
+}
+
+const MENU = [
+  { id:'gallery',     ico:I.photo, t:'Gallery photos',   s:'Add, edit and reorder your project photos' },
+  { id:'bento',       ico:I.home,  t:'Homepage photos',  s:'The featured grid on the front page' },
+  { id:'beforeafter', ico:I.swap,  t:'Before & After',   s:'Photo comparison sliders' },
+  { id:'reviews',     ico:I.star,  t:'Reviews',          s:'What your customers say' },
+  { id:'text',        ico:I.text,  t:'Page wording',     s:'Headings and paragraphs on every page' },
+  { id:'contact',     ico:I.phone, t:'Contact details',  s:'Phone number and email address' },
+];
+
+function viewMenu () {
+  const counts = {
+    gallery:(S.draft.gallery||[]).length, bento:(S.draft.bento||[]).length,
+    beforeafter:(S.draft.beforeafter||[]).length, reviews:(S.draft.reviews||[]).length,
+  };
+  return `<div class="menu">${MENU.map(m => `
+    <button class="menu-item" data-go="${m.id}">
+      <span class="menu-ico">${svg(m.ico, 21)}</span>
+      <span class="menu-txt"><strong>${m.t}</strong><span>${counts[m.id] != null ? counts[m.id] + ' items · ' : ''}${m.s}</span></span>
+      ${svg(I.chev, 17)}
+    </button>`).join('')}
+  </div>
+  <div class="sec-title">Site</div>
+  <div class="menu">
+    <button class="menu-item" data-act="undo">
+      <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.undo, 20)}</span>
+      <span class="menu-txt"><strong>Undo last change</strong><span>Put the website back the way it was</span></span>
+      ${svg(I.chev, 17)}
+    </button>
+    <button class="menu-item" data-act="visit">
+      <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.eye, 20)}</span>
+      <span class="menu-txt"><strong>View live website</strong><span>Opens rplanecarpenter.co.uk</span></span>
+      ${svg(I.chev, 17)}
+    </button>
+    <button class="menu-item" data-act="logout">
+      <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.out, 20)}</span>
+      <span class="menu-txt"><strong>Sign out</strong><span></span></span>
+      ${svg(I.chev, 17)}
+    </button>
+  </div>`;
+}
+
+function tileRows (list, kind) {
+  if (!list.length) return `<div class="empty">${svg(I.photo, 38)}<p>No photos yet.</p></div>`;
+  return list.map((t, i) => `
+    <div class="card"><div class="card-b">
+      <div class="row">
+        <img class="thumb" src="${esc(S.siteOrigin)}/${esc(t.src)}" alt="" loading="lazy">
+        <div class="row-main">
+          <div class="t">${esc(t.title)}</div>
+          <div class="s">${esc(t.alt || 'No description')}</div>
+          <span class="pill gold">${esc(t.tag)}</span>
+          ${kind === 'gallery' ? `<span class="pill">${esc(catLabel(t.category))}</span>` : ''}
+          ${kind === 'bento' ? `<span class="pill">${esc(sizeLabel(t.size))}</span>` : ''}
+        </div>
+      </div>
+      <div class="tools">
+        <button class="btn btn-sm" data-edit="${i}">${svg(I.edit,14)} Edit</button>
+        <button class="btn btn-sm" data-mv="${i}:-1" ${i === 0 ? 'disabled' : ''}>${svg(I.up,14)}</button>
+        <button class="btn btn-sm" data-mv="${i}:1" ${i === list.length - 1 ? 'disabled' : ''}>${svg(I.dn,14)}</button>
+        <button class="btn btn-sm btn-danger" data-del="${i}" style="margin-left:auto">${svg(I.bin,14)}</button>
+      </div>
+    </div></div>`).join('');
+}
+
+const catLabel = v => (S.schema.categories.find(c => c.value === v) || {}).label || v;
+const sizeLabel = v => (S.schema.bentoSizes.find(c => c.value === v) || {}).label || v;
+
+function viewTiles (kind) {
+  const list = S.draft[kind] || [];
+  const max = kind === 'bento' ? 12 : 60;
+  return `
+    <div class="note">${svg(I.warn,17)}<span>${kind === 'bento'
+      ? 'These are the photos on your front page. Keep it to your best work — around 10 looks best.'
+      : 'These photos appear on your Gallery page and can be filtered by type.'}</span></div>
+    ${tileRows(list, kind)}
+    <button class="btn btn-gold btn-block" data-add="1" style="margin-top:14px" ${list.length >= max ? 'disabled' : ''}>
+      ${svg(I.plus,15)} Add photo
+    </button>`;
+}
+
+function viewBeforeAfter () {
+  const list = S.draft.beforeafter || [];
+  const rows = list.length ? list.map((p, i) => `
+    <div class="card"><div class="card-b">
+      <div class="ba-thumbs">
+        <figure><figcaption>Before</figcaption><img src="${esc(S.siteOrigin)}/${esc(p.before)}" alt="" loading="lazy"></figure>
+        <figure><figcaption>After</figcaption><img src="${esc(S.siteOrigin)}/${esc(p.after)}" alt="" loading="lazy"></figure>
+      </div>
+      <div class="row-main" style="margin-top:12px">
+        <div class="t">${esc(p.title)}</div>
+        <span class="pill gold">${esc(p.tag)}</span>
+      </div>
+      <div class="tools">
+        <button class="btn btn-sm" data-edit="${i}">${svg(I.edit,14)} Edit</button>
+        <button class="btn btn-sm" data-mv="${i}:-1" ${i === 0 ? 'disabled' : ''}>${svg(I.up,14)}</button>
+        <button class="btn btn-sm" data-mv="${i}:1" ${i === list.length - 1 ? 'disabled' : ''}>${svg(I.dn,14)}</button>
+        <button class="btn btn-sm btn-danger" data-del="${i}" style="margin-left:auto">${svg(I.bin,14)}</button>
+      </div>
+    </div></div>`).join('') : `<div class="empty">${svg(I.swap,38)}<p>No before &amp; after pairs yet.</p></div>`;
+
+  return `<div class="note">${svg(I.warn,17)}<span>Upload the room before you started and after you finished. Photos work best taken from the same spot.</span></div>
+    ${rows}
+    <button class="btn btn-gold btn-block" data-add="1" style="margin-top:14px">${svg(I.plus,15)} Add a before &amp; after</button>`;
+}
+
+function viewReviews () {
+  const list = S.draft.reviews || [];
+  const rows = list.length ? list.map((r, i) => `
+    <div class="card"><div class="card-b">
+      <div class="row">
+        <div class="menu-ico" style="width:38px;height:38px;border-radius:50%;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600">${esc(r.initial)}</div>
+        <div class="row-main">
+          <div class="s" style="font-size:13.5px;color:var(--ink-2);line-height:1.5">&ldquo;${esc(r.quote.slice(0, 130))}${r.quote.length > 130 ? '…' : ''}&rdquo;</div>
+          <span class="pill gold">${esc(r.project)}</span>
+        </div>
+      </div>
+      <div class="tools">
+        <button class="btn btn-sm" data-edit="${i}">${svg(I.edit,14)} Edit</button>
+        <button class="btn btn-sm" data-mv="${i}:-1" ${i === 0 ? 'disabled' : ''}>${svg(I.up,14)}</button>
+        <button class="btn btn-sm" data-mv="${i}:1" ${i === list.length - 1 ? 'disabled' : ''}>${svg(I.dn,14)}</button>
+        <button class="btn btn-sm btn-danger" data-del="${i}" style="margin-left:auto">${svg(I.bin,14)}</button>
+      </div>
+    </div></div>`).join('') : `<div class="empty">${svg(I.star,38)}<p>No reviews yet.</p></div>`;
+
+  return `<div class="note">${svg(I.warn,17)}<span>The first review in this list is the one shown when someone lands on your homepage.</span></div>
+    ${rows}
+    <button class="btn btn-gold btn-block" data-add="1" style="margin-top:14px">${svg(I.plus,15)} Add a review</button>`;
+}
+
+function viewText () {
+  return S.schema.textGroups.map((g, gi) => {
+    const dirty = g.fields.some(f => JSON.stringify(S.draft.text[f.id]) !== JSON.stringify(S.base.text[f.id]));
+    const open = S.group === gi;
+    return `<div class="grp ${open ? 'open' : ''} ${dirty ? 'dirty' : ''}">
+      <button class="grp-h" data-grp="${gi}">
+        <strong>${esc(g.name)}</strong>
+        <span class="n">${g.fields.length}</span>
+        ${svg(I.down, 16)}
+      </button>
+      <div class="grp-b">${open ? g.fields.map(fieldHtml).join('') : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function fieldHtml (f) {
+  const v = S.draft.text[f.id];
+  if (f.type === 'heading') {
+    const o = typeof v === 'object' && v ? v : { line1:'', line2:'' };
+    return `<div class="field">
+      <label>${esc(f.label)}</label>
+      <div class="two">
+        <input class="inp" data-tf="${f.id}:line1" value="${esc(o.line1)}" maxlength="${f.max}" placeholder="First line">
+        <input class="inp" data-tf="${f.id}:line2" value="${esc(o.line2)}" maxlength="${f.max}" placeholder="Second line (italic)">
+      </div>
+      <div class="hint">The second line shows in italic gold on the website.</div>
+    </div>`;
+  }
+  const s = String(v ?? '');
+  const over = s.length > f.max;
+  if (f.type === 'para') {
+    return `<div class="field">
+      <label>${esc(f.label)}<span class="count ${over ? 'over' : ''}" data-c="${f.id}">${s.length}/${f.max}</span></label>
+      <textarea class="ta" data-tf="${f.id}" maxlength="${f.max + 40}">${esc(s)}</textarea>
+      <div class="hint">Wrap words in **stars** to make them bold.</div>
+    </div>`;
+  }
+  return `<div class="field">
+    <label>${esc(f.label)}<span class="count ${over ? 'over' : ''}" data-c="${f.id}">${s.length}/${f.max}</span></label>
+    <input class="inp" data-tf="${f.id}" value="${esc(s)}" maxlength="${f.max + 20}">
+  </div>`;
+}
+
+function viewContact () {
+  const c = S.draft.contact || {};
+  return `<div class="note">${svg(I.warn,17)}<span>Changing these updates your phone number or email <strong>everywhere</strong> on the website, including the WhatsApp button.</span></div>
+    <div class="card"><div class="card-b">
+      <div class="field">
+        <label>Phone number</label>
+        <input class="inp" data-ct="phone" value="${esc(c.phone)}" inputmode="tel">
+        <div class="hint">UK mobile or landline, e.g. 07990 527683</div>
+      </div>
+      <div class="field">
+        <label>Email address</label>
+        <input class="inp" data-ct="email" value="${esc(c.email)}" inputmode="email">
+        <div class="hint">Where your enquiry emails are sent</div>
+      </div>
+    </div></div>`;
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+const TITLES = {
+  menu:'Website Editor', gallery:'Gallery photos', bento:'Homepage photos',
+  beforeafter:'Before & After', reviews:'Reviews', text:'Page wording', contact:'Contact details',
+};
+
+function render () {
+  const root = $('root');
+
+  if (!S.authed) { root.innerHTML = viewLogin(); syncBar(); return; }
+  if (S.loading || !S.draft) { root.innerHTML = `<div class="center"><div class="spinner"></div><span>Loading your website…</span></div>`; return; }
+
+  const body =
+    S.view === 'menu' ? viewMenu() :
+    S.view === 'gallery' ? viewTiles('gallery') :
+    S.view === 'bento' ? viewTiles('bento') :
+    S.view === 'beforeafter' ? viewBeforeAfter() :
+    S.view === 'reviews' ? viewReviews() :
+    S.view === 'text' ? viewText() :
+    S.view === 'contact' ? viewContact() : '';
+
+  root.innerHTML = `
+    <div class="app">
+      <header class="topbar">
+        ${S.view !== 'menu' ? `<button class="back" data-go="menu" aria-label="Back">${svg(I.back,18)}</button>` : ''}
+        <h1>${S.view === 'menu' ? '<span class="sub">R. Plane Carpenter</span>' : ''}${esc(TITLES[S.view])}</h1>
+      </header>
+      <main>${body}</main>
+    </div>`;
+
+  syncBar();
+}
+
+/* ============================================================
+   Sheets (modals)
+   ============================================================ */
+function sheet (title, bodyHtml, footHtml) {
+  const wrap = document.createElement('div');
+  wrap.className = 'scrim';
+  wrap.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-h"><h2>${esc(title)}</h2><button class="back" data-close="1" aria-label="Close">${svg(I.x,18)}</button></div>
+    <div class="sheet-b">${bodyHtml}</div>
+    ${footHtml ? `<div class="sheet-f">${footHtml}</div>` : ''}
+  </div>`;
+  document.body.appendChild(wrap);
+  wrap.addEventListener('click', e => { if (e.target === wrap || e.target.closest('[data-close]')) wrap.remove(); });
+  return wrap;
+}
+
+function confirmSheet (title, message, confirmLabel = 'Delete') {
+  return new Promise(resolve => {
+    const w = sheet(title, `<p style="margin:0;color:var(--ink-2)">${esc(message)}</p>`,
+      `<button class="btn" data-close="1">Cancel</button><button class="btn btn-danger" data-yes="1">${esc(confirmLabel)}</button>`);
+    w.addEventListener('click', e => {
+      if (e.target.closest('[data-yes]')) { w.remove(); resolve(true); }
+      else if (e.target === w || e.target.closest('[data-close]')) resolve(false);
+    });
+  });
+}
+
+function imagePicker (selected) {
+  return `<div class="imgpick">${S.images.map(im =>
+    `<button type="button" data-pick="${esc(im.path)}" class="${im.path === selected ? 'on' : ''}">
+      <img src="${esc(S.siteOrigin)}/${esc(im.path)}" alt="" loading="lazy"></button>`).join('')}</div>`;
+}
+
+/* ---------- tile editor ---------- */
+function editTile (kind, index) {
+  const isNew = index == null;
+  const list = S.draft[kind];
+  const t = isNew
+    ? { src:'', alt:'', tag:'', title:'', category:'kitchen', size:'normal', width:600, height:400 }
+    : clone(list[index]);
+
+  const extra = kind === 'gallery'
+    ? `<div class="field"><label>Which filter does it belong to?</label>
+        <select class="sel" data-f="category">${S.schema.categories.map(c =>
+          `<option value="${c.value}" ${t.category === c.value ? 'selected' : ''}>${esc(c.label)}</option>`).join('')}</select></div>`
+    : `<div class="field"><label>Tile size on the homepage</label>
+        <select class="sel" data-f="size">${S.schema.bentoSizes.map(c =>
+          `<option value="${c.value}" ${t.size === c.value ? 'selected' : ''}>${esc(c.label)}</option>`).join('')}</select></div>`;
+
+  const w = sheet(isNew ? 'Add photo' : 'Edit photo', `
+    <div class="field">
+      <label>Photo</label>
+      <div id="pv" style="margin-bottom:10px">${t.src
+        ? `<img src="${esc(S.siteOrigin)}/${esc(t.src)}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`
+        : ''}</div>
+      <div class="drop" id="drop">${svg(I.up2,26)}<strong>Choose a photo</strong><span>Straight from your camera roll</span></div>
+      <input type="file" accept="image/*" id="file" class="hidden">
+      ${S.images.length ? `<details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;color:var(--ink-3);font-weight:600">Or reuse a photo already on the site</summary><div style="margin-top:10px">${imagePicker(t.src)}</div></details>` : ''}
+    </div>
+    <div class="field"><label>Title</label>
+      <input class="inp" data-f="title" value="${esc(t.title)}" maxlength="90" placeholder="White shaker kitchen, walnut worktop"></div>
+    <div class="field"><label>Short label</label>
+      <input class="inp" data-f="tag" value="${esc(t.tag)}" maxlength="40" placeholder="Country Kitchen">
+      <div class="hint">The small gold text above the title.</div></div>
+    ${extra}
+    <div class="field"><label>Description</label>
+      <textarea class="ta" data-f="alt" maxlength="200" placeholder="Describe the photo for Google and for people using screen readers.">${esc(t.alt)}</textarea>
+      <div class="hint">Leave blank and one will be written from the title and label.</div></div>
+  `, `<button class="btn" data-close="1">Cancel</button><button class="btn btn-gold" data-save="1">${isNew ? 'Add photo' : 'Save'}</button>`);
+
+  const get = f => w.querySelector(`[data-f="${f}"]`);
+  w.querySelector('#drop').onclick = () => w.querySelector('#file').click();
+
+  w.querySelector('#file').onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const drop = w.querySelector('#drop');
+    drop.innerHTML = `<div class="spinner" style="margin:0 auto 8px"></div><strong>Processing…</strong><span>Rotating, resizing and optimising</span>`;
+    try {
+      const up = await uploadPhoto(file, { maxEdge:1600, quality:0.82 }, kind);
+      t.src = up.path; t.width = up.width; t.height = up.height;
+      w.querySelector('#pv').innerHTML = `<img src="${esc(S.siteOrigin)}/${esc(up.path)}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
+      drop.innerHTML = `${svg(I.check,26)}<strong>Photo ready</strong><span>Tap to choose a different one</span>`;
+    } catch (err) {
+      toast(err.message, 'err');
+      drop.innerHTML = `${svg(I.up2,26)}<strong>Choose a photo</strong><span>Straight from your camera roll</span>`;
+    }
+  };
+
+  w.addEventListener('click', e => {
+    const pick = e.target.closest('[data-pick]');
+    if (pick) {
+      t.src = pick.dataset.pick;
+      w.querySelectorAll('.imgpick button').forEach(b => b.classList.toggle('on', b === pick));
+      w.querySelector('#pv').innerHTML = `<img src="${esc(S.siteOrigin)}/${esc(t.src)}" style="width:100%;max-height:230px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
+      return;
+    }
+    if (!e.target.closest('[data-save]')) return;
+
+    t.title = get('title').value.trim();
+    t.tag = get('tag').value.trim();
+    t.alt = get('alt').value.trim();
+    if (kind === 'gallery') t.category = get('category').value; else t.size = get('size').value;
+
+    if (!t.src) return toast('Please choose a photo.', 'err');
+    if (!t.title) return toast('Please give the photo a title.', 'err');
+    if (!t.tag) return toast('Please add a short label.', 'err');
+    // A sensible description beats an empty one for search and screen readers.
+    if (!t.alt) t.alt = `${t.title} — ${t.tag} by R. Plane Carpenter, Norwich.`;
+
+    if (isNew) list.push(t); else list[index] = t;
+    w.remove(); render();
+  });
+}
+
+/* ---------- before/after editor ---------- */
+function editPair (index) {
+  const isNew = index == null;
+  const list = S.draft.beforeafter;
+  const p = isNew
+    ? { tag:'', title:'', before:'', after:'', beforeAlt:'', afterAlt:'', caption:'' }
+    : clone(list[index]);
+
+  const slot = (which, label) => `
+    <div class="field">
+      <label>${label} photo</label>
+      <div id="pv-${which}" style="margin-bottom:8px">${p[which]
+        ? `<img src="${esc(S.siteOrigin)}/${esc(p[which])}" style="width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">` : ''}</div>
+      <div class="drop" data-drop="${which}">${svg(I.up2,24)}<strong>Choose ${label.toLowerCase()} photo</strong></div>
+      <input type="file" accept="image/*" data-file="${which}" class="hidden">
+    </div>`;
+
+  const w = sheet(isNew ? 'Add before & after' : 'Edit before & after', `
+    <div class="grid2">${slot('before','Before')}${slot('after','After')}</div>
+    <div class="field"><label>Room label</label>
+      <input class="inp" data-f="tag" value="${esc(p.tag)}" maxlength="40" placeholder="Utility Room"></div>
+    <div class="field"><label>Title</label>
+      <input class="inp" data-f="title" value="${esc(p.title)}" maxlength="90" placeholder="Bare room to bespoke utility"></div>
+    <div class="field"><label>Caption</label>
+      <input class="inp" data-f="caption" value="${esc(p.caption)}" maxlength="200" placeholder="Utility room · bespoke cabinetry">
+      <div class="hint">Wrap words in **stars** to make them bold.</div></div>
+  `, `<button class="btn" data-close="1">Cancel</button><button class="btn btn-gold" data-save="1">${isNew ? 'Add' : 'Save'}</button>`);
+
+  w.querySelectorAll('[data-drop]').forEach(d => {
+    d.onclick = () => w.querySelector(`[data-file="${d.dataset.drop}"]`).click();
+  });
+  w.querySelectorAll('[data-file]').forEach(inp => {
+    inp.onchange = async e => {
+      const file = e.target.files[0]; if (!file) return;
+      const which = inp.dataset.file;
+      const drop = w.querySelector(`[data-drop="${which}"]`);
+      drop.innerHTML = `<div class="spinner" style="margin:0 auto"></div>`;
+      try {
+        // 3:4 portrait keeps both halves of the slider aligned.
+        const up = await uploadPhoto(file, { maxEdge:1440, ratio:3/4, quality:0.84 }, 'ba');
+        p[which] = up.path;
+        w.querySelector(`#pv-${which}`).innerHTML =
+          `<img src="${esc(S.siteOrigin)}/${esc(up.path)}" style="width:100%;height:170px;object-fit:cover;border-radius:12px;border:1px solid var(--line)">`;
+        drop.innerHTML = `${svg(I.check,24)}<strong>Ready</strong>`;
+      } catch (err) {
+        toast(err.message, 'err');
+        drop.innerHTML = `${svg(I.up2,24)}<strong>Choose photo</strong>`;
+      }
+    };
+  });
+
+  w.addEventListener('click', e => {
+    if (!e.target.closest('[data-save]')) return;
+    const g = f => w.querySelector(`[data-f="${f}"]`).value.trim();
+    p.tag = g('tag'); p.title = g('title'); p.caption = g('caption');
+    if (!p.before || !p.after) return toast('Please choose both a before and an after photo.', 'err');
+    if (!p.tag) return toast('Please add a room label.', 'err');
+    if (!p.title) return toast('Please add a title.', 'err');
+    if (!p.beforeAlt) p.beforeAlt = `${p.tag} before work started, by R. Plane Carpenter, Norwich.`;
+    if (!p.afterAlt) p.afterAlt = `${p.tag} finished — ${p.title}, by R. Plane Carpenter, Norwich.`;
+    if (isNew) list.push(p); else list[index] = p;
+    w.remove(); render();
+  });
+}
+
+/* ---------- review editor ---------- */
+function editReview (index) {
+  const isNew = index == null;
+  const list = S.draft.reviews;
+  const r = isNew ? { quote:'', project:'', initial:'' } : clone(list[index]);
+
+  const w = sheet(isNew ? 'Add review' : 'Edit review', `
+    <div class="field"><label>What they said</label>
+      <textarea class="ta" data-f="quote" maxlength="600" style="min-height:130px">${esc(r.quote)}</textarea></div>
+    <div class="two">
+      <div class="field"><label>Project</label>
+        <input class="inp" data-f="project" value="${esc(r.project)}" maxlength="40" placeholder="Bespoke kitchen"></div>
+      <div class="field"><label>First initial</label>
+        <input class="inp" data-f="initial" value="${esc(r.initial)}" maxlength="1" placeholder="J" style="text-transform:uppercase"></div>
+    </div>
+    <div class="hint">Only the first initial is shown, to keep your customer's name private.</div>
+  `, `<button class="btn" data-close="1">Cancel</button><button class="btn btn-gold" data-save="1">${isNew ? 'Add' : 'Save'}</button>`);
+
+  w.addEventListener('click', e => {
+    if (!e.target.closest('[data-save]')) return;
+    const g = f => w.querySelector(`[data-f="${f}"]`).value.trim();
+    r.quote = g('quote'); r.project = g('project'); r.initial = g('initial').toUpperCase().slice(0, 1);
+    if (!r.quote) return toast('Please add the review text.', 'err');
+    if (!r.project) return toast('Please add a project label.', 'err');
+    if (!r.initial) return toast('Please add the first initial.', 'err');
+    if (isNew) list.push(r); else list[index] = r;
+    w.remove(); render();
+  });
+}
+
+/* ============================================================
+   Preview / publish
+   ============================================================ */
+const PAGE_FOR = { gallery:'gallery.html', bento:'index.html', beforeafter:'gallery.html', reviews:'index.html', contact:'contact.html', text:'index.html', menu:'index.html' };
+
+async function doPreview () {
+  const c = changes();
+  if (!Object.keys(c).length) return toast('Nothing to preview yet.', 'warn');
+
+  const page = PAGE_FOR[S.view] || 'index.html';
+  const w = sheet('Preview', `<div class="center" style="min-height:220px"><div class="spinner"></div><span>Building preview…</span></div>`,
+    `<button class="btn" data-close="1">Close</button><button class="btn btn-gold" data-pub="1">Publish now</button>`);
+
+  try {
+    const res = await fetch('/api/preview', {
+      method:'POST', credentials:'same-origin',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ page, changes:c }),
+    });
+    if (!res.ok) {
+      let msg = 'Could not build the preview.';
+      try { msg = (await res.json()).error || msg; } catch {}
+      throw new Error(msg);
+    }
+    const html = await res.text();
+    const body = w.querySelector('.sheet-b');
+    body.style.padding = '0';
+    body.innerHTML = `<iframe class="frame" sandbox="allow-same-origin"></iframe>`;
+    const doc = body.querySelector('iframe').contentDocument;
+    doc.open(); doc.write(html); doc.close();
+  } catch (err) {
+    w.querySelector('.sheet-b').innerHTML = `<div class="note" style="margin:0">${svg(I.warn,17)}<span>${esc(err.message)}</span></div>`;
+  }
+
+  w.addEventListener('click', e => {
+    if (e.target.closest('[data-pub]')) { w.remove(); doPublish(); }
+  });
+}
+
+async function doPublish () {
+  const c = changes();
+  if (!Object.keys(c).length) return toast('Nothing to publish.', 'warn');
+  if (S.busy) return;
+
+  S.busy = true;
+  const btn = $('btnPublish');
+  const label = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const summary = Object.keys(c).map(k => ({
+      text:'page wording', gallery:'gallery photos', bento:'homepage photos',
+      beforeafter:'before & after', reviews:'reviews', contact:'contact details',
+    }[k] || k)).join(', ');
+
+    const res = await api('/api/save', {
+      method:'POST',
+      body: JSON.stringify({ changes:c, sha:S.sha, message:summary }),
+    });
+
+    if (res.committed) {
+      toast(res.message || 'Published.', 'ok', 5000);
+      S.base = clone(S.draft);
+      S.sha = res.sha;
+    } else {
+      toast(res.message || 'Nothing had changed.', 'warn');
+      S.base = clone(S.draft);
+    }
+  } catch (err) {
+    toast(err.message, 'err', 6000);
+  } finally {
+    S.busy = false;
+    btn.disabled = false;
+    btn.innerHTML = label;
+    syncBar();
+    render();
+  }
+}
+
+/* ============================================================
+   Load
+   ============================================================ */
+async function load () {
+  S.loading = true; render();
+  try {
+    const res = await api('/api/model');
+    S.sha = res.sha;
+    S.siteOrigin = res.siteOrigin;
+    S.schema = res.schema;
+    S.images = res.images || [];
+    S.base = res.model;
+    S.draft = clone(res.model);
+    S.authed = true;
+  } catch (err) {
+    if (!/log in/i.test(err.message)) toast(err.message, 'err', 7000);
+  } finally {
+    S.loading = false; render();
+  }
+}
+
+/* ============================================================
+   Events
+   ============================================================ */
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'loginForm') return;
+  e.preventDefault();
+  const btn = $('loginBtn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  try {
+    await api('/api/login', { method:'POST', body: JSON.stringify({ password: $('pw').value }) });
+    await load();
+  } catch (err) {
+    toast(err.message, 'err');
+    btn.disabled = false; btn.textContent = 'Sign in';
+    $('pw').value = ''; $('pw').focus();
+  }
+});
+
+document.addEventListener('click', async e => {
+  const go = e.target.closest('[data-go]');
+  if (go) { S.view = go.dataset.go; S.group = null; render(); window.scrollTo(0, 0); return; }
+
+  const grp = e.target.closest('[data-grp]');
+  if (grp) { const i = Number(grp.dataset.grp); S.group = S.group === i ? null : i; render(); return; }
+
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    const a = act.dataset.act;
+    if (a === 'visit') { window.open(S.siteOrigin, '_blank', 'noopener'); return; }
+    if (a === 'logout') {
+      if (changeCount() && !(await confirmSheet('Sign out?', 'You have unsaved changes that will be lost.', 'Sign out'))) return;
+      await api('/api/logout', { method:'POST' }).catch(() => {});
+      S.authed = false; S.draft = null; S.base = null; render(); return;
+    }
+    if (a === 'undo') {
+      if (!(await confirmSheet('Undo the last change?', 'This puts the website back the way it was before your last publish. You can undo this too.', 'Undo it'))) return;
+      try { const r = await api('/api/undo', { method:'POST' }); toast(r.message, 'ok', 5000); await load(); }
+      catch (err) { toast(err.message, 'err', 6000); }
+      return;
+    }
+  }
+
+  const kind = S.view;
+  const editor = { gallery:i => editTile('gallery', i), bento:i => editTile('bento', i), beforeafter:editPair, reviews:editReview }[kind];
+
+  const add = e.target.closest('[data-add]');
+  if (add && editor) { editor(null); return; }
+
+  const ed = e.target.closest('[data-edit]');
+  if (ed && editor) { editor(Number(ed.dataset.edit)); return; }
+
+  const mv = e.target.closest('[data-mv]');
+  if (mv) {
+    const [i, d] = mv.dataset.mv.split(':').map(Number);
+    const list = S.draft[kind];
+    const j = i + d;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    render(); return;
+  }
+
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    const i = Number(del.dataset.del);
+    const list = S.draft[kind];
+    if (list.length <= 1) return toast('You need to keep at least one.', 'warn');
+    if (!(await confirmSheet('Remove this?', 'It will disappear from the website when you publish.', 'Remove'))) return;
+    list.splice(i, 1); render(); return;
+  }
+
+  if (e.target.closest('#btnPreview')) return doPreview();
+  if (e.target.closest('#btnPublish')) return doPublish();
+});
+
+document.addEventListener('input', e => {
+  const tf = e.target.closest('[data-tf]');
+  if (tf) {
+    const [id, part] = tf.dataset.tf.split(':');
+    if (part) {
+      const cur = S.draft.text[id];
+      S.draft.text[id] = { ...(typeof cur === 'object' && cur ? cur : { line1:'', line2:'' }), [part]: tf.value };
+    } else {
+      S.draft.text[id] = tf.value;
+      const c = document.querySelector(`[data-c="${id}"]`);
+      if (c) {
+        const max = Number(c.textContent.split('/')[1]);
+        c.textContent = `${tf.value.length}/${max}`;
+        c.classList.toggle('over', tf.value.length > max);
+      }
+    }
+    syncBar();
+    const g = tf.closest('.grp');
+    if (g) g.classList.add('dirty');
+    return;
+  }
+
+  const ct = e.target.closest('[data-ct]');
+  if (ct) { S.draft.contact[ct.dataset.ct] = ct.value; syncBar(); }
+});
+
+/* Boot */
+load();
+</script>
+</body>
+</html>
