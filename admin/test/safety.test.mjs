@@ -56,6 +56,46 @@ for (const page of LIVE_PAGES) {
      /key\.length > 20/.test(html));
 }
 
+/* ---------- 2b. Password managers can save and fill the login ---------- */
+
+{
+  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8');
+
+  // iOS Keychain and Google Password Manager generally will not offer to
+  // save a password-only form. A username field is what they file it under.
+  const userFields = html.match(/autocomplete="username"/g) || [];
+  ok('passwords: a username field on the sign-in form', userFields.length >= 1);
+  ok('passwords: a username field on the create form', userFields.length >= 2, `${userFields.length} found`);
+
+  ok('passwords: sign-in marked current-password', html.includes('autocomplete="current-password"'));
+  ok('passwords: create marked new-password', html.includes('autocomplete="new-password"'));
+  // The two real password fields must be fillable. The access-key field is
+  // deliberately excluded from autofill — it is not the account password,
+  // and filling it with one would only confuse.
+  for (const id of ['pw', 'newPw']) {
+    const tag = (html.match(new RegExp(`<input[^>]*id="${id}"[^>]*>`)) || [''])[0];
+    ok(`passwords: #${id} is not opted out of autofill`, tag && !/autocomplete="off"/.test(tag), tag.slice(0, 90));
+  }
+  ok('passwords: the access key field stays out of autofill',
+     /id="key"[^>]*autocomplete="off"|autocomplete="off"[^>]*id="key"/.test(html));
+
+  // Managers watch for a form submission, so both flows must be real forms.
+  ok('passwords: sign-in is a form submit', /<form[^>]*id="pwForm"/.test(html) && html.includes("e.target.id === 'pwForm'"));
+  ok('passwords: creating a password is a form submit',
+     /<form[^>]*id="newPwForm"/.test(html) && html.includes("e.target.id === 'newPwForm'"));
+  ok('passwords: the create button submits that form', /form="newPwForm"/.test(html));
+
+  // The hidden username must be offscreen, not display:none, which is
+  // more likely to be skipped over by a password manager.
+  ok('passwords: username field is offscreen, not display:none',
+     html.includes('.sr-only{') && /clip-path:inset\(50%\)/.test(html));
+  ok('passwords: username field is not focusable', /class="sr-only"[^>]*tabindex="-1"/.test(html));
+
+  ok('passwords: the new password starts hidden',
+     /id="newPw" type="password"/.test(html));
+  ok('passwords: it can be revealed to be read', html.includes('data-peek'));
+}
+
 /* ---------- 3. reviews-v2.js still parses and still works ---------- */
 
 {

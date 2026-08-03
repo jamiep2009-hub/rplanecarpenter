@@ -206,6 +206,21 @@ main{flex:1;padding:20px 18px calc(150px + var(--safe-b))}
 .imgpick button:hover{border-color:var(--gold)}
 .imgpick button.on{border-color:var(--gold);box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 26%,transparent)}
 .imgpick img{width:100%;height:84px;object-fit:cover}
+/* Present for password managers, invisible to everyone else. Offscreen
+   rather than display:none, which managers are more likely to skip. */
+.sr-only{
+  position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;
+}
+.pw-row{display:flex;gap:8px}
+.pw-row .inp{flex:1;min-width:0}
+.peek{
+  flex:none;width:46px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-3);
+  display:grid;place-items:center;transition:border-color .15s,color .15s;
+}
+.peek:hover{color:var(--ink);border-color:var(--gold)}
+.peek svg{width:18px;height:18px}
 .gauge{display:flex;align-items:center;gap:10px}
 .ticks{display:flex;gap:3px;flex:1}
 .tick{height:4px;flex:1;border-radius:2px;background:var(--line);transition:background .25s}
@@ -417,9 +432,11 @@ function viewPassword (err) {
     <div class="setup-mark">RP</div>
     <h1>Website Editor</h1>
     <p class="lede">R. Plane Carpenter</p>
+    <input class="sr-only" id="pwUser" type="text" name="username" value="rplanecarpenter.co.uk"
+           autocomplete="username" readonly tabindex="-1" aria-hidden="true">
     <div class="field">
       <label for="pw">Password</label>
-      <input class="inp" id="pw" type="password" autocomplete="current-password" required autofocus>
+      <input class="inp" id="pw" type="password" name="password" autocomplete="current-password" required autofocus>
       ${err ? `<div class="hint" style="color:var(--err);font-weight:700">${esc(err)}</div>` : ''}
     </div>
     <button class="btn btn-gold btn-block" type="submit" id="pwBtn">Sign in</button>
@@ -670,21 +687,27 @@ function viewLogin () {
     ? 'A password login is already set up. Setting a new one replaces it everywhere &mdash; anyone using the old password will need the new one.'
     : 'This lets you sign in with just a password on any device, instead of pasting an access key.'}</span></div>
 
-    <div class="card"><div class="card-b">
+    <form class="card" id="newPwForm"><div class="card-b">
+      <input class="sr-only" type="text" name="username" value="rplanecarpenter.co.uk"
+             autocomplete="username" readonly tabindex="-1" aria-hidden="true">
       <div class="field">
-        <label>Password</label>
-        <input class="inp" id="newPw" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Choose a strong password">
+        <label for="newPw">Password</label>
+        <div class="pw-row">
+          <input class="inp" id="newPw" type="password" name="new-password" autocomplete="new-password"
+                 autocapitalize="off" spellcheck="false" placeholder="Choose a strong password">
+          <button class="peek" type="button" data-peek="1" aria-label="Show password">${svg(I.eye,18)}</button>
+        </div>
         <div class="gauge" style="margin-top:9px"><div class="ticks" id="pwTicks"></div><span class="gauge-label" id="pwLabel">&mdash;</span></div>
         <div class="hint">Long beats complicated. Four unrelated words is stronger than one clever word.</div>
       </div>
-      <button class="btn btn-block" data-suggest="1">${svg(I.undo,15)} Suggest a passphrase</button>
-    </div></div>
+      <button class="btn btn-block" type="button" data-suggest="1">${svg(I.undo,15)} Suggest a passphrase</button>
+    </div></form>
 
     <div class="card"><div class="card-b">
       <p style="margin:0;font-size:14px;color:var(--ink-2)">Your access key gets locked with this password and stored in the website. Anyone with the password can then edit the site from any device &mdash; no key needed.</p>
     </div></div>
 
-    <button class="btn btn-gold btn-block" data-savelogin="1" style="margin-top:14px">${has ? 'Replace the password' : 'Create the login'}</button>
+    <button class="btn btn-gold btn-block" type="submit" form="newPwForm" data-savelogin="1" style="margin-top:14px">${has ? 'Replace the password' : 'Create the login'}</button>
 
     <div class="note" style="margin-top:16px;background:var(--surface-2);border-color:var(--line);color:var(--ink-3)">
       ${svg(I.lock,17)}<span>The locked key is a file on the website, so a weak password could be guessed at by someone who finds it. That is why a strong one is required.</span>
@@ -1027,6 +1050,41 @@ async function load () {
    Events
    ============================================================ */
 document.addEventListener('submit', async e => {
+  if (e.target.id === 'newPwForm') {
+    e.preventDefault();
+    const btn = document.querySelector('[data-savelogin]');
+    const pw = $('newPw').value;
+    const st = strength(pw);
+    if (!st.ok) return toast('That password is not strong enough. Try the suggested passphrase.', 'err', 5200);
+    if (!(await confirmSheet(
+      S.lock ? 'Replace the password?' : 'Create the login?',
+      S.lock ? 'Anyone using the old password will need the new one.'
+             : 'You will be able to sign in with just this password, on any device.',
+      S.lock ? 'Replace it' : 'Create it'))) return;
+
+    btn.disabled = true;
+    const label = btn.innerHTML;
+    btn.innerHTML = '<div class="spinner"></div>';
+    try {
+      const key = localStorage.getItem(KEY_STORE);
+      if (!key) throw new Error('No access key is stored on this device.');
+      const envelope = await seal(key, pw);
+      await S.gh.commit({
+        textFiles: { [LOCK_FILE]: JSON.stringify(envelope, null, 2) + '\n' },
+        message: S.lock ? 'update the password login' : 'create the password login',
+      });
+      S.lock = envelope;
+      toast('Password login ready. It works on any device in about a minute.', 'ok', 6000);
+      // Leave the field populated for a moment so the password manager
+      // still sees it when it decides whether to offer a save.
+      setTimeout(() => { S.view = 'menu'; render(); }, 900);
+    } catch (err) {
+      toast(err.message, 'err', 6000);
+      btn.disabled = false; btn.innerHTML = label;
+    }
+    return;
+  }
+
   if (e.target.id === 'pwForm') {
     e.preventDefault();
     const btn = $('pwBtn');
@@ -1118,42 +1176,17 @@ document.addEventListener('click', async e => {
   if (e.target.closest('[data-suggest]')) {
     const el = $('newPw');
     el.value = suggestPassphrase();
+    el.type = 'text';                      // a suggestion is no use unseen
     el.dispatchEvent(new Event('input', { bubbles: true }));
     return;
   }
 
-  const saveLogin = e.target.closest('[data-savelogin]');
-  if (saveLogin) {
-    const pw = $('newPw').value;
-    const st = strength(pw);
-    if (!st.ok) return toast('That password is not strong enough. Try the suggested passphrase.', 'err', 5200);
-    if (!(await confirmSheet(
-      S.lock ? 'Replace the password?' : 'Create the login?',
-      S.lock ? 'Anyone using the old password will need the new one.'
-             : 'You will be able to sign in with just this password, on any device.',
-      S.lock ? 'Replace it' : 'Create it'))) return;
-
-    saveLogin.disabled = true;
-    const label = saveLogin.innerHTML;
-    saveLogin.innerHTML = '<div class="spinner"></div>';
-    try {
-      const key = localStorage.getItem(KEY_STORE);
-      if (!key) throw new Error('No access key is stored on this device.');
-      const envelope = await seal(key, pw);
-      await S.gh.commit({
-        textFiles: { [LOCK_FILE]: JSON.stringify(envelope, null, 2) + '\n' },
-        message: S.lock ? 'update the password login' : 'create the password login',
-      });
-      S.lock = envelope;
-      toast('Password login ready. It works on any device in about a minute.', 'ok', 6000);
-      $('newPw').value = '';
-      S.view = 'menu';
-      render();
-    } catch (err) {
-      toast(err.message, 'err', 6000);
-    } finally {
-      saveLogin.disabled = false; saveLogin.innerHTML = label;
-    }
+  const peek = e.target.closest('[data-peek]');
+  if (peek) {
+    const el = $('newPw');
+    const showing = el.type === 'text';
+    el.type = showing ? 'password' : 'text';
+    peek.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
     return;
   }
 
