@@ -57,12 +57,22 @@ export class GitHub {
     return res.status === 204 ? null : res.json();
   }
 
-  /** Confirm the key works and can write, before we store it. */
+  /**
+   * Confirm the key works before we store it.
+   *
+   * Reaching the repo AND its branch head proves read access. Write
+   * access is only reported back as a hint: GitHub does not always
+   * populate `permissions` for fine-grained tokens, so a missing field
+   * must not block a perfectly good key. Only an explicit "no push"
+   * is treated as a real failure.
+   */
   async checkAccess () {
     const repo = await this.call('');
-    if (!repo.permissions || !repo.permissions.push) {
+    if (repo.permissions && repo.permissions.push === false) {
       throw new Error('That key can read the website but not save changes. It needs Contents: Read and write.');
     }
+    // Proves the branch is reachable, which is what every edit starts from.
+    await this.headSha();
     return { name: repo.full_name, branch: repo.default_branch };
   }
 

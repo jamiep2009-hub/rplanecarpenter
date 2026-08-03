@@ -141,12 +141,39 @@ const gh = new GitHub({ token: 'github_pat_testtoken', owner: 'jamiep2009-hub', 
   ok('connect: refuses an empty key', threw);
 }
 {
-  // A key without write access must be refused at setup, not at save time.
+  // A key that explicitly cannot push must be refused at setup, not at save time.
   const original = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({
     full_name: 'x/y', default_branch: 'main', permissions: { push: false },
   }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   await throwsAsync('connect: read-only key is rejected', () => gh.checkAccess());
+  globalThis.fetch = original;
+}
+{
+  // GitHub does not always report `permissions` for fine-grained tokens.
+  // A good key must not be turned away just because the field is absent.
+  const original = globalThis.fetch;
+  let sawRefCall = false;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('/git/ref/heads/')) {
+      sawRefCall = true;
+      return new Response(JSON.stringify({ object: { sha: 'c1' } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ full_name: 'x/y', default_branch: 'main' }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  const info = await gh.checkAccess();
+  eq('connect: key with no permissions field is accepted', info.name, 'x/y');
+  ok('connect: branch reachability is verified', sawRefCall);
+  globalThis.fetch = original;
+}
+{
+  // An unreachable branch must fail loudly rather than store a dud key.
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url) => String(url).includes('/git/ref/heads/')
+    ? new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+    : new Response(JSON.stringify({ full_name: 'x/y', default_branch: 'main' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  await throwsAsync('connect: unreachable branch is refused', () => gh.checkAccess());
   globalThis.fetch = original;
 }
 
