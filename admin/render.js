@@ -133,6 +133,7 @@ export function renderReviewChips (items) {
 export function renderReviewSlides (items) {
   const slides = items.map((r, i) =>
     '      <figure class="rv-slide' + (i === 0 ? ' is-active' : '') + '" data-i="' + i + '"' +
+      (r.source ? ' data-src="' + escapeAttr(r.source) + '"' : '') +
       (i === 0 ? '' : ' aria-hidden="true"') + '>\n' +
     '        <blockquote class="rv-quote">' + escapeHtml(r.quote) + '</blockquote>\n' +
     '        <figcaption class="rv-meta">\n' +

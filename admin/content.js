@@ -217,11 +217,15 @@ export function readReviews (html) {
   const wrap = readPath(html, COLLECTIONS.reviews.container);
   return locateAll(wrap, COLLECTIONS.reviews.item).map(m => {
     const outer = wrap.slice(m.outerStart, m.outerEnd);
-    return {
+    const r = {
       quote: htmlToText(readPath(outer, [{ cls: 'rv-quote' }])),
       initial: htmlToText(readPath(outer, [{ cls: 'rv-initial' }])),
       project: htmlToText(readPath(outer, [{ cls: 'rv-project' }])),
     };
+    // Reviews pulled from Google are marked, so the sync can replace
+    // those and leave anything written by hand alone.
+    if (m.attrs['data-src']) r.source = m.attrs['data-src'];
+    return r;
   });
 }
 

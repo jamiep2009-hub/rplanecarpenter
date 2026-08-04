@@ -1,0 +1,51 @@
+name: Sync Google reviews
+
+# Pulls reviews from the Google Business Profile into the website.
+#
+# Inert until two repository secrets exist:
+#   GOOGLE_PLACES_API_KEY   from Google Cloud
+#   GOOGLE_PLACE_ID         the Business Profile's place id
+# Without them the job exits quietly, changing nothing.
+on:
+  schedule:
+    - cron: '17 6 * * *'      # once a day, early morning UK
+  workflow_dispatch:           # or on demand from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-reviews
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Pull reviews from Google
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+          GOOGLE_PLACE_ID: ${{ secrets.GOOGLE_PLACE_ID }}
+        run: node admin/sync-google-reviews.mjs
+
+      # A change here rewrites a live page, so it only ships if the
+      # same suite that guards every other edit still passes.
+      - name: Verify the site is still sound
+        run: node admin/test/run.mjs
+
+      - name: Publish if anything changed
+        run: |
+          if [ -z "$(git status --porcelain index.html)" ]; then
+            echo "No change to publish."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Website edit: reviews from Google"
+          git push
