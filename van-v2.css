@@ -156,8 +156,8 @@
     transparent 40%, rgba(255,255,255,.55) 49%, rgba(255,255,255,.75) 50%, rgba(255,255,255,.55) 51%, transparent 60%);
   background-size: 300% 100%;
   background-position: 0% 0;
-  -webkit-mask-image: url("images/van.png?v=3");
-          mask-image: url("images/van.png?v=3");
+  -webkit-mask-image: url("images/van.webp?v=3");
+          mask-image: url("images/van.webp?v=3");
   -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   mix-blend-mode: screen; opacity: 0;

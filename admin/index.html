@@ -565,7 +565,9 @@ async function cropSheet (file, { ratio, outW, outH, quality = 0.84 }) {
         const out = document.createElement('canvas');
         out.width = outW; out.height = outH;
         paint(out.getContext('2d'), outW, outH, outW / DW);
-        const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', quality));
+
+        const type = supportsWebp() ? 'image/webp' : 'image/jpeg';
+        const blob = await new Promise(r => out.toBlob(r, type, quality));
 
         const lc = document.createElement('canvas');
         const lw = 24, lh = Math.max(1, Math.round(lw * outH / outW));
@@ -575,7 +577,7 @@ async function cropSheet (file, { ratio, outW, outH, quality = 0.84 }) {
 
         bmp.close?.();
         w.remove();
-        resolve({ main: blob, lqip, width: outW, height: outH });
+        resolve({ main: blob, lqip, width: outW, height: outH, ext: type === 'image/webp' ? 'webp' : 'jpg' });
       }
     });
   });
@@ -588,12 +590,23 @@ const toBase64 = blob => new Promise((res, rej) => {
   fr.readAsDataURL(blob);
 });
 
-function safeName (original, prefix) {
+/** Does this browser encode WebP? Cached — the answer cannot change. */
+let webpOk = null;
+function supportsWebp () {
+  if (webpOk === null) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 1;
+    webpOk = c.toDataURL('image/webp').startsWith('data:image/webp');
+  }
+  return webpOk;
+}
+
+function safeName (original, prefix, ext = 'jpg') {
   const stamp = Date.now().toString(36);
   const rand = Math.random().toString(36).slice(2, 6);
   const stem = String(original || 'photo').replace(/\.[^.]+$/, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) || 'photo';
-  return `${prefix}-${stem}-${stamp}${rand}.jpg`;
+  return `${prefix}-${stem}-${stamp}${rand}.${ext}`;
 }
 
 /** Crop, then upload. Returns null if the crop was cancelled. */
@@ -604,8 +617,9 @@ async function cropAndUpload (file, opts, prefix) {
 }
 
 async function uploadProcessed (out, originalName, prefix) {
-  const name = safeName(originalName, prefix);
-  const lqipName = name.replace(/\.jpg$/, '-lqip.jpg');
+  const name = safeName(originalName, prefix, out.ext || 'jpg');
+  // The placeholder stays JPEG: it is 24px wide, so the format saves nothing.
+  const lqipName = name.replace(/\.(webp|jpg)$/, '-lqip.jpg');
   const binaryFiles = {};
   binaryFiles[`${IMAGE_DIR}/${name}`] = await toBase64(out.main);
   binaryFiles[`${IMAGE_DIR}/${lqipName}`] = await toBase64(out.lqip);
@@ -622,8 +636,8 @@ async function uploadProcessed (out, originalName, prefix) {
 /* Crop shapes. Before/after must match so the two halves line up;
    4:3 suits room photos and is what the gallery tiles crop from. */
 const CROP = {
-  tile: { ratio: 4 / 3, outW: 1600, outH: 1200, quality: 0.82 },
-  ba:   { ratio: 3 / 4, outW: 1080, outH: 1440, quality: 0.84 },
+  tile: { ratio: 4 / 3, outW: 1200, outH: 900,  quality: 0.80 },
+  ba:   { ratio: 3 / 4, outW: 1080, outH: 1440, quality: 0.82 },
 };
 
 /* ============================================================

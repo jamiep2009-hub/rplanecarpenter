@@ -147,6 +147,56 @@ for (const page of LIVE_PAGES) {
   ok('towns: edits are tracked', html.includes("e.target.id === 'townsBox'"));
 }
 
+/* ---------- 2e. Search-engine basics ---------- */
+
+{
+  const need = ['sitemap.xml', 'robots.txt'];
+  for (const f of need) ok(`seo: ${f} exists`, existsSync(join(SITE, f)));
+
+  const robots = readFileSync(join(SITE, 'robots.txt'), 'utf8');
+  ok('seo: robots points at the sitemap', /Sitemap:\s*https:\/\/rplanecarpenter\.co\.uk\/sitemap\.xml/.test(robots));
+  ok('seo: robots keeps crawlers out of the editor', /Disallow:\s*\/admin\//.test(robots));
+  ok('seo: robots does not block the site', !/^Disallow:\s*\/$/m.test(robots));
+
+  const sitemap = readFileSync(join(SITE, 'sitemap.xml'), 'utf8');
+  const locs = [...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1]);
+  eq('seo: sitemap lists every page', locs.length, LIVE_PAGES.length);
+  ok('seo: sitemap uses absolute https urls', locs.every(u => u.startsWith('https://rplanecarpenter.co.uk/')));
+  ok('seo: sitemap does not list the editor', !locs.some(u => u.includes('/admin')));
+
+  for (const page of LIVE_PAGES) {
+    const html = readFileSync(join(SITE, page), 'utf8');
+    const canon = (html.match(/<link rel="canonical" href="([^"]+)">/) || [])[1];
+    ok(`seo: ${page} has one canonical`, (html.match(/rel="canonical"/g) || []).length === 1);
+    ok(`seo: ${page} canonical is absolute`, canon && canon.startsWith('https://rplanecarpenter.co.uk/'));
+    ok(`seo: ${page} is in the sitemap`, locs.includes(canon), canon);
+
+    for (const tag of ['og:title', 'og:description', 'og:image', 'og:url', 'twitter:card']) {
+      ok(`seo: ${page} has ${tag}`, html.includes(`"${tag}"`));
+    }
+    const ogImg = (html.match(/property="og:image" content="([^"]+)"/) || [])[1];
+    ok(`seo: ${page} share image is absolute`, ogImg && ogImg.startsWith('https://'));
+  }
+}
+
+/* ---------- 2f. Duplicate copies of the site are gone ---------- */
+
+{
+  // These were live, carried placeholder phone numbers, and competed with
+  // the real pages for the same search terms.
+  for (const f of ['preview.html', 'index-new.html', 'index-v3.html',
+                   'rplanecarpenter-website.html', 'hero.b64']) {
+    ok(`clean: ${f} is no longer published`, !existsSync(join(SITE, f)));
+  }
+  ok('clean: the duplicate release/ copy is gone', !existsSync(join(SITE, 'release')));
+
+  for (const page of LIVE_PAGES) {
+    const html = readFileSync(join(SITE, page), 'utf8');
+    ok(`clean: ${page} carries no placeholder number`,
+       !/07XXX|\+447000000000|\+441234567890/.test(html));
+  }
+}
+
 /* ---------- 3. reviews-v2.js still parses and still works ---------- */
 
 {

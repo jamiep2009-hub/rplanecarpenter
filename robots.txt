@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# The editor. Nothing here is useful to a search engine, and it is
+# inert without an access key, but there is no reason to crawl it.
+Disallow: /admin/
+
+Sitemap: https://rplanecarpenter.co.uk/sitemap.xml
