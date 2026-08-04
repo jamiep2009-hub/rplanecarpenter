@@ -197,23 +197,35 @@ for (const page of LIVE_PAGES) {
   }
 }
 
-/* ---------- 3. reviews-v2.js still parses and still works ---------- */
+/* ---------- 3. Reviews are in the page, and the script still drives them ---------- */
 
 {
   const js = readFileSync(join(SITE, 'reviews-v2.js'), 'utf8');
-  ok('reviews: markers present', js.includes('/* ADMIN:reviews:start */') && js.includes('/* ADMIN:reviews:end */'));
+  const html = readFileSync(join(SITE, 'index.html'), 'utf8');
 
   let parses = true;
   try { new Function(js); } catch (e) { parses = false; failures.push('reviews: parse error — ' + e.message); }
-  ok('reviews: file is valid JavaScript', parses);
+  ok('reviews: the script is valid JavaScript', parses);
 
-  const items = readReviews(js);
-  eq('reviews: 6 reviews readable', items.length, 6);
-  ok('reviews: first review text intact', items[0].quote.startsWith('First class work carried out by Robbie'));
-  ok('reviews: every review complete', items.every(r => r.quote && r.project && r.initial));
+  // The whole point of the change: content lives in the page, not the script.
+  ok('reviews: the script holds no review text', !/var reviews\s*=\s*\[/.test(js),
+     'content in a JS array is invisible to anything that does not run the carousel');
+  ok('reviews: the script reads slides from the page', js.includes(".querySelectorAll('.rv-slide')"));
 
-  const start = js.indexOf('/* ADMIN:reviews:start */');
-  ok('reviews: start marker precedes the array', start !== -1 && start < js.indexOf('var reviews'));
+  const items = readReviews(html);
+  eq('reviews: six readable from the markup', items.length, 6);
+  ok('reviews: every one is complete', items.every(r => r.quote && r.project && r.initial));
+  ok('reviews: first review text intact', items.some(r => r.quote.startsWith('First class work carried out by Robbie')));
+
+  // Exactly one visible, the rest present but hidden.
+  eq('reviews: one slide starts active', (html.match(/class="rv-slide is-active"/g) || []).length, 1);
+  eq('reviews: the others are hidden from assistive tech',
+     (html.match(/class="rv-slide" data-i="\d+" aria-hidden="true"/g) || []).length, 5);
+
+  // Hidden must mean faded, not removed — display:none content carries less weight.
+  const css = readFileSync(join(SITE, 'reviews-v2.css'), 'utf8');
+  ok('reviews: hidden slides are faded, not display:none',
+     /\.rv-slide\s*\{[^}]*opacity:\s*0/.test(css) && !/\.rv-slide\s*\{[^}]*display:\s*none/.test(css));
 }
 
 /* ---------- 4. The working tree is clean when tests run ----------

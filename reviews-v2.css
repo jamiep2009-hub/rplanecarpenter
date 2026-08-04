@@ -59,6 +59,27 @@
   max-width: 920px; margin: 0 auto;
   text-align: center;
 }
+/* Every review is in the page; one is shown at a time. They are
+   stacked and faded rather than display:none, so all of them are
+   genuinely rendered content for anything reading the page. */
+.rv-slides { position: relative; }
+.rv-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+  transition: opacity .45s ease;
+}
+.rv-slide.is-active {
+  position: relative;
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-slide { transition: none; }
+}
+
 .rv-quote-mark {
   font-family: "Cormorant Garamond", serif;
   font-size: 240px; line-height: .55;
@@ -101,13 +122,55 @@
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: none; }
 }
-.rv-quote-wrap.rv-bump .rv-quote,
-.rv-quote-wrap.rv-bump .rv-meta,
-.rv-quote-wrap.rv-bump .rv-quote-mark {
+.rv-quote-wrap.rv-bump .rv-slide.is-active .rv-quote,
+.rv-quote-wrap.rv-bump .rv-slide.is-active .rv-meta,
+.rv-quote-wrap.rv-bump /* Every review is in the page; one is shown at a time. They are
+   stacked and faded rather than display:none, so all of them are
+   genuinely rendered content for anything reading the page. */
+.rv-slides { position: relative; }
+.rv-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+  transition: opacity .45s ease;
+}
+.rv-slide.is-active {
+  position: relative;
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-slide { transition: none; }
+}
+
+.rv-quote-mark {
   animation: rv-up .85s cubic-bezier(.22, .68, 0, 1.05) both;
 }
-.rv-quote-wrap.rv-bump .rv-meta       { animation-delay: .08s; }
-.rv-quote-wrap.rv-bump .rv-quote-mark { animation-delay: 0s; opacity: .35; }
+.rv-quote-wrap.rv-bump .rv-slide.is-active .rv-meta { animation-delay: .08s; }
+.rv-quote-wrap.rv-bump /* Every review is in the page; one is shown at a time. They are
+   stacked and faded rather than display:none, so all of them are
+   genuinely rendered content for anything reading the page. */
+.rv-slides { position: relative; }
+.rv-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+  transition: opacity .45s ease;
+}
+.rv-slide.is-active {
+  position: relative;
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-slide { transition: none; }
+}
+
+.rv-quote-mark { animation-delay: 0s; opacity: .35; }
 
 /* Chip row */
 .rv-chips {
@@ -168,16 +231,58 @@
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .rv-spotlight { animation: none; opacity: .55; }
-  .rv-quote-wrap.rv-bump .rv-quote,
-  .rv-quote-wrap.rv-bump .rv-meta,
-  .rv-quote-wrap.rv-bump .rv-quote-mark { animation: none; }
+  .rv-quote-wrap.rv-bump .rv-slide.is-active .rv-quote,
+  .rv-quote-wrap.rv-bump .rv-slide.is-active .rv-meta,
+  .rv-quote-wrap.rv-bump /* Every review is in the page; one is shown at a time. They are
+   stacked and faded rather than display:none, so all of them are
+   genuinely rendered content for anything reading the page. */
+.rv-slides { position: relative; }
+.rv-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+  transition: opacity .45s ease;
+}
+.rv-slide.is-active {
+  position: relative;
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-slide { transition: none; }
+}
+
+.rv-quote-mark { animation: none; }
 }
 
 /* Mobile */
 @media (max-width: 720px) {
   .rv { padding: 80px 16px 70px; }
   .rv-spotlight { width: 600px; height: 600px; }
-  .rv-quote-mark { font-size: 140px; margin-bottom: -20px; }
+  /* Every review is in the page; one is shown at a time. They are
+   stacked and faded rather than display:none, so all of them are
+   genuinely rendered content for anything reading the page. */
+.rv-slides { position: relative; }
+.rv-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+  transition: opacity .45s ease;
+}
+.rv-slide.is-active {
+  position: relative;
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-slide { transition: none; }
+}
+
+.rv-quote-mark { font-size: 140px; margin-bottom: -20px; }
   .rv-quote { font-size: 1.25rem; }
   .rv-chips { gap: 6px; margin-top: 48px; }
   .rv-chip-label { display: none; }

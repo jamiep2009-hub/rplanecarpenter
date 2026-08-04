@@ -19,7 +19,6 @@ export const EDITABLE_FILES = [
   'gallery.html',
   'contact.html',
   'privacy-policy.html',
-  'reviews-v2.js',
 ];
 
 /** Directory new photos are committed into. */
@@ -201,7 +200,9 @@ export const COLLECTIONS = {
   },
   reviews: {
     label: 'Reviews',
-    file: 'reviews-v2.js',
+    file: 'index.html',
+    container: [{ cls: 'rv-quote-wrap' }],
+    item: { cls: 'rv-slide' },
     max: 20,
   },
   towns: {

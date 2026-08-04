@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import {
   readModel, applyChanges, readGallery, writeGallery, readTowns, writeTowns,
   readBento, writeBento, readBeforeAfter, writeBeforeAfter,
-  readReviews, writeReviews, writeReviewsIntoHome,
+  readReviews, writeReviews,
   parseHeading, renderHeading, phoneForms, readContact,
 } from '../content.js';
 import { EDITABLE_FILES, TEXT_FIELDS } from '../schema.js';
@@ -65,14 +65,21 @@ ok('model: no empty text field', Object.entries(model.text).every(([, v]) =>
      out === files['gallery.html'] ? '' : diffHint(files['gallery.html'], out));
 }
 {
-  const out = writeReviews(files['reviews-v2.js'], readReviews(files['reviews-v2.js']));
-  ok('round-trip: reviews array byte-identical', out === files['reviews-v2.js'],
-     out === files['reviews-v2.js'] ? '' : diffHint(files['reviews-v2.js'], out));
+  const out = writeReviews(files['index.html'], readReviews(files['index.html']));
+  ok('round-trip: reviews byte-identical', out === files['index.html'],
+     out === files['index.html'] ? '' : diffHint(files['index.html'], out));
 }
 {
-  const out = writeReviewsIntoHome(files['index.html'], readReviews(files['reviews-v2.js']));
-  ok('round-trip: homepage chips + quote byte-identical', out === files['index.html'],
-     out === files['index.html'] ? '' : diffHint(files['index.html'], out));
+  // The point of the change: every review must be real text in the page,
+  // not just the one the carousel happens to be showing.
+  const reviews = readReviews(files['index.html']);
+  eq('reviews: all six live in the markup', reviews.length, 6);
+  const asText = htmlToTextish(files['index.html']);
+  const present = reviews.filter(r => asText.includes(r.quote)).length;
+  eq('reviews: every one is crawlable text', present, reviews.length);
+  eq('reviews: a chip for each', (files['index.html'].match(/class="rv-chip"|class="rv-chip is-active"/g) || []).length, 6);
+  ok('reviews: exactly one starts visible',
+     (files['index.html'].match(/class="rv-slide is-active"/g) || []).length === 1);
 }
 
 /* Every text field written back with its own value must be a no-op. */
@@ -135,12 +142,23 @@ ok('model: no empty text field', Object.entries(model.text).every(([, v]) =>
   ok('edit: footer untouched', res.files['gallery.html'].endsWith(tail));
 }
 {
-  // Editing reviews updates the JS and the homepage together.
+  // Editing a review updates the slide and its chip together.
   const rs = model.reviews.map((r, i) => i === 0 ? { ...r, project: 'Changed label' } : r);
   const res = applyChanges(files, { reviews: rs });
-  eq('edit: reviews touch both files', res.changed.sort().join(','), 'index.html,reviews-v2.js');
-  ok('edit: chip label updated', res.files['index.html'].includes('Changed label'));
-  ok('edit: js array updated', res.files['reviews-v2.js'].includes('Changed label'));
+  eq('edit: reviews touch only index.html', res.changed.join(','), 'index.html');
+  eq('edit: label appears twice — slide and chip',
+     (res.files['index.html'].match(/Changed label/g) || []).length, 2);
+}
+{
+  // A review added in the editor must land in the page as readable text.
+  const added = { quote: 'Robbie built us a bespoke media wall in Wymondham and it is superb.',
+                  project: 'Media wall', initial: 'T' };
+  const res = applyChanges(files, { reviews: [...model.reviews, added] });
+  const html = res.files['index.html'];
+  ok('add: the new review is real text in the page', htmlToTextish(html).includes(added.quote));
+  eq('add: it gets a slide', (html.match(/class="rv-slide/g) || []).length - 1, 7);
+  ok('add: it gets a chip', html.includes('>Media wall</span>'));
+  ok('add: it is hidden but present', html.includes('aria-hidden="true"'));
 }
 
 /* ---------- 4. Validation refuses bad input ---------- */
@@ -267,6 +285,17 @@ throws('towns: markup in a name rejected', () => applyChanges(files, { towns: ['
 }
 
 /* ---------- helpers ---------- */
+
+/** Rough render of a page to plain text, the way a crawler ends up reading it. */
+function htmlToTextish (html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/g, '')
+    .replace(/<style[\s\S]*?<\/style>/g, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&mdash;/g, '\u2014').replace(/&rsquo;/g, '\u2019')
+    .replace(/&middot;/g, '\u00b7').replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ');
+}
 
 function diffHint (a, b) {
   let i = 0;

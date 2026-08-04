@@ -125,14 +125,26 @@ export function renderReviewChips (items) {
   return '\n' + rows + '\n  ';
 }
 
-export function renderReviewQuote (first) {
+/**
+ * Every review, rendered into the page. Only one is visible at a time,
+ * but all of them are real text a crawler can read on first load —
+ * which was not true when five of six lived in a JavaScript array.
+ */
+export function renderReviewSlides (items) {
+  const slides = items.map((r, i) =>
+    '      <figure class="rv-slide' + (i === 0 ? ' is-active' : '') + '" data-i="' + i + '"' +
+      (i === 0 ? '' : ' aria-hidden="true"') + '>\n' +
+    '        <blockquote class="rv-quote">' + escapeHtml(r.quote) + '</blockquote>\n' +
+    '        <figcaption class="rv-meta">\n' +
+    '          <span class="rv-initial">' + escapeHtml(r.initial) + '</span>\n' +
+    '          <span class="rv-project">' + escapeHtml(r.project) + '</span>\n' +
+    '        </figcaption>\n' +
+    '      </figure>'
+  ).join('\n');
+
   return '\n' +
     '    <span class="rv-quote-mark" aria-hidden="true">"</span>\n' +
-    '    <blockquote class="rv-quote">' + escapeHtml(first.quote) + '</blockquote>\n' +
-    '    <footer class="rv-meta">\n' +
-    '      <span class="rv-initial">' + escapeHtml(first.initial) + '</span>\n' +
-    '      <span class="rv-project">' + escapeHtml(first.project) + '</span>\n' +
-    '    </footer>\n' +
+    '    <div class="rv-slides">\n' + slides + '\n    </div>\n' +
     '  ';
 }
 

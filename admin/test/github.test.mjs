@@ -226,20 +226,22 @@ let files, sha, model;
 
 /* 4. a multi-file edit is still ONE commit */
 {
+  // Changing a town rewrites the visible list on one page and the
+  // structured data on two — a genuine multi-file save.
   const before = fake.depth();
   const fresh = (await gh.readFiles(EDITABLE_FILES)).files;
-  const rs = readModel(fresh).reviews.map((r, i) => i === 0 ? { ...r, project: 'Changed label' } : r);
-  const result = applyChanges(fresh, { reviews: rs });
-  eq('atomic: two files change', result.changed.sort().join(','), 'index.html,reviews-v2.js');
+  const towns = readModel(fresh).towns;
+  const result = applyChanges(fresh, { towns: [...towns, 'Sheringham'] });
+  eq('atomic: two files change', result.changed.sort().join(','), 'contact.html,index.html');
 
   const textFiles = {};
   for (const f of result.changed) textFiles[f] = result.files[f];
-  await gh.commit({ textFiles, message: 'reviews' });
+  await gh.commit({ textFiles, message: 'towns covered' });
   eq('atomic: still a single commit', fake.depth(), before + 1);
 
-  const after = (await gh.readFiles(['index.html', 'reviews-v2.js'])).files;
+  const after = (await gh.readFiles(['index.html', 'contact.html'])).files;
   ok('atomic: both files updated together',
-     after['index.html'].includes('Changed label') && after['reviews-v2.js'].includes('Changed label'));
+     after['contact.html'].includes('<li>Sheringham</li>') && after['index.html'].includes('"Sheringham"'));
 }
 
 /* 5. concurrent edits are refused, not silently overwritten */

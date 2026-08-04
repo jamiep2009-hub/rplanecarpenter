@@ -17,7 +17,7 @@ import {
 } from './schema.js';
 import {
   renderGalleryGrid, renderBentoGrid, renderBeforeAfterGallery,
-  renderReviewsArray, renderReviewChips, renderReviewQuote, renderTownList,
+  renderReviewChips, renderReviewSlides, renderTownList,
 } from './render.js';
 
 /* ------------------------------------------------------------
@@ -205,75 +205,32 @@ export function writeBeforeAfter (html, items) {
 
 /* ------------------------------------------------------------
    Collections — reviews
-   The model lives in reviews-v2.js between ADMIN markers; the
-   homepage chips and opening quote are regenerated to match.
+
+   Reviews are read from, and written to, the page itself. They used
+   to live in a JavaScript array, which meant only the one visible on
+   load was ever real text; the other five were invisible to anything
+   that did not sit through the carousel. Now every review a person
+   adds in the editor lands in the HTML.
    ------------------------------------------------------------ */
 
-const REVIEWS_START = '/* ADMIN:reviews:start */';
-const REVIEWS_END = '/* ADMIN:reviews:end */';
-
-function reviewsRegion (js) {
-  const a = js.indexOf(REVIEWS_START);
-  const b = js.indexOf(REVIEWS_END);
-  if (a === -1 || b === -1 || b < a) {
-    throw new Error('Could not find the reviews block in reviews-v2.js.');
-  }
-  return { start: a + REVIEWS_START.length, end: b };
+export function readReviews (html) {
+  const wrap = readPath(html, COLLECTIONS.reviews.container);
+  return locateAll(wrap, COLLECTIONS.reviews.item).map(m => {
+    const outer = wrap.slice(m.outerStart, m.outerEnd);
+    return {
+      quote: htmlToText(readPath(outer, [{ cls: 'rv-quote' }])),
+      initial: htmlToText(readPath(outer, [{ cls: 'rv-initial' }])),
+      project: htmlToText(readPath(outer, [{ cls: 'rv-project' }])),
+    };
+  });
 }
 
-/** Read a JS double-quoted string literal starting at `i` (which must be the quote). */
-function readJsString (src, i) {
-  if (src[i] !== '"') return null;
-  let out = '';
-  let j = i + 1;
-  while (j < src.length) {
-    const c = src[j];
-    if (c === '\\') {
-      const n = src[j + 1];
-      if (n === 'u') { out += String.fromCodePoint(parseInt(src.slice(j + 2, j + 6), 16)); j += 6; continue; }
-      if (n === 'n') { out += '\n'; j += 2; continue; }
-      if (n === 't') { out += '\t'; j += 2; continue; }
-      out += n; j += 2; continue;
-    }
-    if (c === '"') return { value: out, end: j + 1 };
-    out += c;
-    j++;
-  }
-  return null;
-}
-
-export function readReviews (js) {
-  const { start, end } = reviewsRegion(js);
-  const body = js.slice(start, end);
-  const items = [];
-  const keyRe = /(quote|project|initial)\s*:\s*/g;
-  let current = {};
-  let m;
-  while ((m = keyRe.exec(body)) !== null) {
-    const str = readJsString(body, keyRe.lastIndex);
-    if (!str) continue;
-    current[m[1]] = str.value;
-    keyRe.lastIndex = str.end;
-    if (current.quote != null && current.project != null && current.initial != null) {
-      items.push({ quote: current.quote, project: current.project, initial: current.initial });
-      current = {};
-    }
-  }
-  return items;
-}
-
-export function writeReviews (js, items) {
+/** Write the reviews and keep the selector chips in step. */
+export function writeReviews (html, items) {
   validateReviews(items);
-  try { if (sameList(readReviews(js), items)) return js; } catch { /* regenerate */ }
-  const { start, end } = reviewsRegion(js);
-  return js.slice(0, start) + renderReviewsArray(items) + js.slice(end);
-}
-
-/** Keep the homepage chips and opening quote in step with the reviews list. */
-export function writeReviewsIntoHome (html, items) {
-  validateReviews(items);
-  let out = replacePath(html, [{ cls: 'rv-chips' }], renderReviewChips(items));
-  out = replacePath(out, [{ cls: 'rv-quote-wrap' }], renderReviewQuote(items[0]));
+  try { if (sameList(readReviews(html), items)) return html; } catch { /* regenerate */ }
+  let out = replacePath(html, [{ cls: 'rv-quote-wrap' }], renderReviewSlides(items));
+  out = replacePath(out, [{ cls: 'rv-chips' }], renderReviewChips(items));
   return out;
 }
 
@@ -285,8 +242,7 @@ function validateReviews (items) {
     if (String(r.quote).length > 600) throw new Error(`Review ${i + 1} is too long (max 600 characters).`);
     if (!String(r.project || '').trim()) throw new Error(`Review ${i + 1} needs a project label.`);
     if (String(r.project).length > 40) throw new Error(`Review ${i + 1} project label is too long (max 40).`);
-    const init = String(r.initial || '').trim();
-    if (init.length !== 1) throw new Error(`Review ${i + 1} initial must be a single letter.`);
+    if (String(r.initial || '').trim().length !== 1) throw new Error(`Review ${i + 1} initial must be a single letter.`);
   });
 }
 
@@ -431,7 +387,7 @@ export function readModel (files) {
   try { model.gallery = readGallery(files['gallery.html']); } catch { model.gallery = []; }
   try { model.bento = readBento(files['index.html']); } catch { model.bento = []; }
   try { model.beforeafter = readBeforeAfter(files['gallery.html']); } catch { model.beforeafter = []; }
-  try { model.reviews = readReviews(files['reviews-v2.js']); } catch { model.reviews = []; }
+  try { model.reviews = readReviews(files['index.html']); } catch { model.reviews = []; }
   try { model.towns = readTowns(files['contact.html']); } catch { model.towns = []; }
 
   return model;
@@ -462,10 +418,7 @@ export function applyChanges (files, changes) {
   if (changes.bento) out['index.html'] = writeBento(out['index.html'], changes.bento);
   if (changes.beforeafter) out['gallery.html'] = writeBeforeAfter(out['gallery.html'], changes.beforeafter);
 
-  if (changes.reviews) {
-    out['reviews-v2.js'] = writeReviews(out['reviews-v2.js'], changes.reviews);
-    out['index.html'] = writeReviewsIntoHome(out['index.html'], changes.reviews);
-  }
+  if (changes.reviews) out['index.html'] = writeReviews(out['index.html'], changes.reviews);
 
   if (changes.towns) {
     out['contact.html'] = writeTowns(out['contact.html'], changes.towns);
