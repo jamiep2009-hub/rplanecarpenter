@@ -287,12 +287,12 @@ input[type=range]::-moz-range-thumb{
 </div></div>
 
 <script type="module">
-import { GitHub } from './github.js';
-import { seal, unseal, suggestPassphrase, strength } from './crypto.js';
-import { readModel, applyChanges } from './content.js';
+import { GitHub } from './github.js?v=3';
+import { seal, unseal, suggestPassphrase, strength } from './crypto.js?v=3';
+import { readModel, applyChanges } from './content.js?v=3';
 import {
   EDITABLE_FILES, IMAGE_DIR, GALLERY_CATEGORIES, BENTO_SIZES, groupedTextFields,
-} from './schema.js';
+} from './schema.js?v=3';
 
 /* ============================================================
    Configuration — the repository this editor maintains.

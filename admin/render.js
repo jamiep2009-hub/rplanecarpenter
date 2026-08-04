@@ -9,7 +9,7 @@
 
 'use strict';
 
-import { escapeHtml, escapeAttr, textToInline } from './htmledit.js';
+import { escapeHtml, escapeAttr, textToInline } from './htmledit.js?v=3';
 
 /* ---------- Gallery page tiles ---------- */
 

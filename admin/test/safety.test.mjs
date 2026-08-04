@@ -197,6 +197,42 @@ for (const page of LIVE_PAGES) {
   }
 }
 
+/* ---------- 2g. A deploy must not leave stale editor code running ----------
+   Browsers cache JavaScript. When the editor's modules changed but their
+   URLs did not, phones kept running the previous version against the new
+   site and produced errors about code that no longer existed. Every
+   browser-facing import therefore carries a version stamp, and they must
+   all agree — a half-updated editor is worse than an old one.
+   ------------------------------------------------------------ */
+
+{
+  const browserFiles = ['index.html', 'content.js', 'render.js'];
+  const stamps = new Set();
+  let bare = [];
+
+  for (const f of browserFiles) {
+    const src = readFileSync(join(ADMIN, f), 'utf8');
+    for (const m of src.matchAll(/from\s+['"](\.\/[^'"]+)['"]/g)) {
+      const spec = m[1];
+      const v = /\?v=(\d+)$/.exec(spec);
+      if (v) stamps.add(v[1]); else bare.push(`${f}: ${spec}`);
+    }
+  }
+
+  ok('cache: every editor import is version-stamped', bare.length === 0, bare.join(', '));
+  eq('cache: the stamps all agree', stamps.size, 1);
+  ok('cache: a stamp is actually present', stamps.size === 1 && [...stamps][0].length > 0);
+
+  // schema.js and htmledit.js have no local imports of their own; if that
+  // ever changes they must be stamped too, so assert the assumption.
+  for (const f of ['schema.js', 'htmledit.js', 'crypto.js', 'github.js']) {
+    const src = readFileSync(join(ADMIN, f), 'utf8');
+    const local = [...src.matchAll(/from\s+['"](\.\/[^'"]+)['"]/g)].map(m => m[1]);
+    const unstamped = local.filter(x => !/\?v=\d+$/.test(x));
+    ok(`cache: ${f} has no unstamped local import`, unstamped.length === 0, unstamped.join(', '));
+  }
+}
+
 /* ---------- 3. Reviews are in the page, and the script still drives them ---------- */
 
 {

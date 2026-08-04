@@ -11,14 +11,14 @@
 import {
   readPath, replacePath, locateAll, readAttrPath,
   htmlToText, textToHtml, escapeHtml, inlineToText, textToInline,
-} from './htmledit.js';
+} from './htmledit.js?v=3';
 import {
   TEXT_FIELDS, COLLECTIONS, getTextField, EDITABLE_FILES, SCHEMA_ORG_FILES,
-} from './schema.js';
+} from './schema.js?v=3';
 import {
   renderGalleryGrid, renderBentoGrid, renderBeforeAfterGallery,
   renderReviewChips, renderReviewSlides, renderTownList,
-} from './render.js';
+} from './render.js?v=3';
 
 /* ------------------------------------------------------------
    Headings: "line one<br><em>line two</em>"
