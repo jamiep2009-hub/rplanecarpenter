@@ -242,19 +242,22 @@ for (const page of LIVE_PAGES) {
   const gx = locateAll(index, { cls: 'gx-grid' });
   ok('site: one bento grid', gx.length === 1, `found ${gx.length}`);
 
+  // Counts are deliberately not asserted: photos and reviews are content
+  // the owner adds and removes, so a fixed number would fail the moment
+  // they did exactly what the editor is for.
   const tiles = locateAll(readPath(index, [{ cls: 'gx-grid' }]), { cls: 'gx-tile' });
-  ok('site: bento has 10 tiles', tiles.length === 10, `found ${tiles.length}`);
+  ok('site: the bento grid has tiles', tiles.length >= 1, `found ${tiles.length}`);
 
   const chips = locateAll(readPath(index, [{ cls: 'rv-chips' }]), { cls: 'rv-chip' });
-  ok('site: 6 review chips', chips.length === 6, `found ${chips.length}`);
+  ok('site: there are review chips', chips.length >= 1, `found ${chips.length}`);
 }
 {
   const gallery = readFileSync(join(SITE, 'gallery.html'), 'utf8');
   const tiles = locateAll(readPath(gallery, [{ id: 'tileGrid' }]), { cls: 'tile' });
-  ok('site: gallery has 10 tiles', tiles.length === 10, `found ${tiles.length}`);
+  ok('site: the gallery has tiles', tiles.length >= 1, `found ${tiles.length}`);
 
   const pairs = locateAll(readPath(gallery, [{ cls: 'ba-gallery' }]), { cls: 'ba-pair' });
-  ok('site: 2 before/after pairs', pairs.length === 2, `found ${pairs.length}`);
+  ok('site: there are before/after pairs', pairs.length >= 1, `found ${pairs.length}`);
 }
 {
   const contact = readFileSync(join(SITE, 'contact.html'), 'utf8');

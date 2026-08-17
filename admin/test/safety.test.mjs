@@ -233,6 +233,59 @@ for (const page of LIVE_PAGES) {
   }
 }
 
+/* ---------- 2h. Nothing non-essential loads before consent ----------
+   UK PECR requires permission before analytics cookies, not after.
+   The pages must therefore carry no tag at all — it is injected only
+   once someone has agreed.
+   ------------------------------------------------------------ */
+
+{
+  for (const page of LIVE_PAGES) {
+    const html = readFileSync(join(SITE, page), 'utf8');
+    ok(`consent: ${page} loads no analytics of its own`,
+       !html.includes('googletagmanager'),
+       'a tag in the markup runs before any choice can be made');
+    ok(`consent: ${page} has no inline gtag call`, !/gtag\s*\(/.test(html));
+    ok(`consent: ${page} includes the consent script`, html.includes('cookies-v2.js'));
+    ok(`consent: ${page} includes the consent styles`, html.includes('cookies-v2.css'));
+  }
+
+  const js = readFileSync(join(SITE, 'cookies-v2.js'), 'utf8');
+
+  // The only mention of Google must sit inside the function that runs on consent.
+  const fnStart = js.indexOf('function startAnalytics');
+  const fnEnd = js.indexOf('\n  }', fnStart);
+  const inside = js.slice(fnStart, fnEnd);
+  ok('consent: Google is only ever referenced inside startAnalytics',
+     (js.match(/googletagmanager/g) || []).length === 1 && inside.includes('googletagmanager'));
+
+  ok('consent: refusing is offered as plainly as accepting',
+     js.includes('data-ck="denied"') && js.includes('data-ck="granted"'));
+  ok('consent: the choice can be withdrawn later', js.includes('ck-reopen'));
+  ok('consent: withdrawing deletes what was set', js.includes('clearAnalyticsCookies'));
+  ok('consent: consent expires and is asked again', /MAX_AGE_DAYS\s*=\s*\d+/.test(js));
+  ok('consent: the choice itself is not stored in a cookie',
+     js.includes('localStorage.setItem(STORE') && !/document\.cookie\s*=\s*STORE/.test(js));
+  ok('consent: private browsing does not break it', /catch \(e\)/.test(js));
+
+  const css = readFileSync(join(SITE, 'cookies-v2.css'), 'utf8');
+  // Both buttons must carry the same weight — that is a legal requirement.
+  const yes = /\.ck-yes\s*\{[\s\S]*?\}/.exec(css)[0];
+  const no = /\.ck-no\s*\{[\s\S]*?\}/.exec(css)[0];
+  ok('consent: neither button is visually hidden',
+     !/display:\s*none/.test(yes + no) && !/opacity:\s*0/.test(yes + no));
+  ok('consent: both buttons share the same shape', css.includes('.ck-btn {'));
+
+  const policy = readFileSync(join(SITE, 'privacy-policy.html'), 'utf8');
+  ok('consent: the policy no longer claims there are no cookies',
+     !/This website does not use cookies/.test(policy) &&
+     !/I do not use analytics software/.test(policy));
+  ok('consent: the policy names the cookies actually set',
+     policy.includes('_ga') && policy.includes('Google Analytics'));
+  ok('consent: the policy explains how to change your mind',
+     /Cookie choice/.test(policy));
+}
+
 /* ---------- 3. Reviews are in the page, and the script still drives them ---------- */
 
 {
@@ -249,14 +302,14 @@ for (const page of LIVE_PAGES) {
   ok('reviews: the script reads slides from the page', js.includes(".querySelectorAll('.rv-slide')"));
 
   const items = readReviews(html);
-  eq('reviews: six readable from the markup', items.length, 6);
+  ok('reviews: readable from the markup', items.length >= 1, `${items.length}`);
   ok('reviews: every one is complete', items.every(r => r.quote && r.project && r.initial));
-  ok('reviews: first review text intact', items.some(r => r.quote.startsWith('First class work carried out by Robbie')));
 
-  // Exactly one visible, the rest present but hidden.
+  // One visible, every other one present but hidden — asserted as a
+  // relationship, since the owner adds and removes reviews freely.
   eq('reviews: one slide starts active', (html.match(/class="rv-slide is-active"/g) || []).length, 1);
-  eq('reviews: the others are hidden from assistive tech',
-     (html.match(/class="rv-slide" data-i="\d+" aria-hidden="true"/g) || []).length, 5);
+  eq('reviews: every other slide is hidden from assistive tech',
+     (html.match(/class="rv-slide" data-i="\d+" aria-hidden="true"/g) || []).length, items.length - 1);
 
   // Hidden must mean faded, not removed — display:none content carries less weight.
   const css = readFileSync(join(SITE, 'reviews-v2.css'), 'utf8');

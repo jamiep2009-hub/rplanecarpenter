@@ -1,0 +1,131 @@
+/* ============================================================
+   R. Plane Carpenter — Cookie consent
+
+   Analytics is the only non-essential thing this site loads, and
+   under UK PECR it needs permission before it runs, not after.
+   Refusing has to be exactly as easy as accepting, so the two
+   buttons are the same size and sit side by side. There is no
+   pre-ticked box and no "carry on browsing to agree".
+   ============================================================ */
+
+.ck {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 9000;
+  padding: 20px clamp(16px, 4vw, 32px) calc(20px + env(safe-area-inset-bottom, 0px));
+  background: rgba(14, 11, 8, .96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(196, 135, 61, .35);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, .35);
+  transform: translateY(110%);
+  transition: transform .42s cubic-bezier(.2, .8, .2, 1);
+}
+.ck.is-open { transform: none; }
+
+.ck-in {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 3vw, 36px);
+}
+
+.ck-text { flex: 1; min-width: 0; }
+.ck-title {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 20px;
+  color: #fff;
+  margin: 0 0 4px;
+  letter-spacing: -.01em;
+}
+.ck-body {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, .68);
+  margin: 0;
+  max-width: 62ch;
+}
+.ck-body a { color: #e8c89a; text-underline-offset: 3px; }
+.ck-body a:hover { color: #fff; }
+
+.ck-acts { display: flex; gap: 10px; flex: none; }
+.ck-btn {
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-family: Nunito, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .22s, border-color .22s, color .22s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.ck-btn:active { transform: scale(.98); }
+
+/* Both choices carry equal weight — that is a legal requirement,
+   not a stylistic one. */
+.ck-no {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .3);
+  color: rgba(255, 255, 255, .88);
+}
+.ck-no:hover { border-color: #fff; color: #fff; background: rgba(255, 255, 255, .06); }
+
+.ck-yes {
+  background: #c4873d;
+  border: 1px solid #c4873d;
+  color: #1c1610;
+}
+.ck-yes:hover { background: #e8c89a; border-color: #e8c89a; }
+
+.ck-btn:focus-visible { outline: 2px solid #e8c89a; outline-offset: 3px; }
+
+/* The footer link that lets someone change their mind later —
+   consent has to be as easy to withdraw as it was to give. */
+.ck-reopen {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ck-reopen:hover { color: #c4873d; }
+
+/* A short confirmation after a choice is made */
+.ck-done {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 14px);
+  z-index: 9001;
+  padding: 11px 20px;
+  border-radius: 999px;
+  background: rgba(14, 11, 8, .96);
+  border: 1px solid rgba(196, 135, 61, .4);
+  color: #e8c89a;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s, transform .3s;
+}
+.ck-done.is-open { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ck, .ck-done { transition: none; }
+}
+
+@media (max-width: 780px) {
+  .ck { padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); }
+  .ck-in { flex-direction: column; align-items: stretch; gap: 16px; }
+  .ck-title { font-size: 18px; }
+  .ck-body { font-size: 13px; }
+  .ck-acts { width: 100%; }
+  .ck-btn { flex: 1; padding: 13px 12px; }
+}

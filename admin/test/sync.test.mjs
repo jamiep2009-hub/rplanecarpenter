@@ -64,15 +64,17 @@ const GOOD = {
 /* ---------- 2. Merging must never destroy hand-written reviews ---------- */
 
 {
+  // How many reviews the site has is the owner's business — the tests
+  // assert that none are lost, not that there are exactly N.
   const manual = readReviews(REAL_PAGE);
-  eq('merge: the site starts with six written by hand', manual.length, 6);
+  ok('merge: the site starts with hand-written reviews', manual.length >= 1);
 
   const google = GOOD.result.reviews.map(mapGoogleReview);
   const merged = mergeReviews(manual, google);
 
-  eq('merge: nothing is lost', merged.length, 8);
+  eq('merge: nothing is lost', merged.length, manual.length + google.length);
   eq('merge: every hand-written one survives',
-     merged.filter(r => r.source !== 'google').length, 6);
+     merged.filter(r => r.source !== 'google').length, manual.length);
   ok('merge: hand-written order is preserved',
      merged.filter(r => r.source !== 'google').map(r => r.quote).join('|') ===
      manual.map(r => r.quote).join('|'));
@@ -137,7 +139,8 @@ await throwsAsync('fetch: an over-quota response is raised', () =>
   const page = tmpPage();
   const res = await sync({ placeId: 'P', apiKey: 'K', pagePath: page, log: quiet, fetchImpl: reply({ status: 'OK', result: { reviews: [] } }) });
   eq('safe: an empty response changes nothing', res.reason, 'no-reviews');
-  eq('safe: the reviews are still there', readReviews(readFileSync(page, 'utf8')).length, 6);
+  eq('safe: the reviews are still there',
+     readReviews(readFileSync(page, 'utf8')).length, readReviews(REAL_PAGE).length);
 }
 {
   const page = tmpPage();
@@ -169,9 +172,11 @@ await throwsAsync('fetch: an over-quota response is raised', () =>
 
   const html = readFileSync(page, 'utf8');
   const after = readReviews(html);
-  eq('sync: eight reviews on the page', after.length, 8);
+  const before = readReviews(REAL_PAGE);
+  eq('sync: the page gains exactly the Google ones', after.length, before.length + 2);
   eq('sync: two are marked as Google', after.filter(r => r.source === 'google').length, 2);
-  eq('sync: six are still hand-written', after.filter(r => r.source !== 'google').length, 6);
+  eq('sync: the hand-written ones are all still there',
+     after.filter(r => r.source !== 'google').length, before.length);
 
   // The whole point: they must be readable without running the carousel.
   const asText = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ');
@@ -182,7 +187,7 @@ await throwsAsync('fetch: an over-quota response is raised', () =>
      (html.match(/class="rv-slide is-active"/g) || []).length === 1);
   // Count by class token — "rv-chip" must not also match "rv-chip-label".
   eq('sync: a chip for every review',
-     locateAll(readPath(html, [{ cls: 'rv-chips' }]), { cls: 'rv-chip' }).length, 8);
+     locateAll(readPath(html, [{ cls: 'rv-chips' }]), { cls: 'rv-chip' }).length, after.length);
 
   // Running again against the same data must be a no-op.
   const again = await sync({ placeId: 'P', apiKey: 'K', pagePath: page, log: quiet, fetchImpl: reply(GOOD) });

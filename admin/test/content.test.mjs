@@ -37,10 +37,12 @@ const model = readModel(files);
 
 ok('model: text fields read', Object.keys(model.text).length === TEXT_FIELDS.length,
    `${Object.keys(model.text).length}/${TEXT_FIELDS.length}`);
-ok('model: gallery has 10 tiles', model.gallery.length === 10, `${model.gallery.length}`);
-ok('model: bento has 10 tiles', model.bento.length === 10, `${model.bento.length}`);
-ok('model: 2 before/after pairs', model.beforeafter.length === 2, `${model.beforeafter.length}`);
-ok('model: 6 reviews', model.reviews.length === 6, `${model.reviews.length}`);
+// These are all owner-editable, so the tests check that they read at all
+// and hang together — never that there are exactly N of them.
+ok('model: gallery tiles read', model.gallery.length >= 1, `${model.gallery.length}`);
+ok('model: bento tiles read', model.bento.length >= 1, `${model.bento.length}`);
+ok('model: before/after pairs read', model.beforeafter.length >= 1, `${model.beforeafter.length}`);
+ok('model: reviews read', model.reviews.length >= 1, `${model.reviews.length}`);
 eq('model: contact phone', model.contact.phone, '07990 527683');
 eq('model: contact email', model.contact.email, 'rplanecarpenter@hotmail.co.uk');
 
@@ -73,11 +75,13 @@ ok('model: no empty text field', Object.entries(model.text).every(([, v]) =>
   // The point of the change: every review must be real text in the page,
   // not just the one the carousel happens to be showing.
   const reviews = readReviews(files['index.html']);
-  eq('reviews: all six live in the markup', reviews.length, 6);
+  ok('reviews: some live in the markup', reviews.length >= 1);
   const asText = htmlToTextish(files['index.html']);
   const present = reviews.filter(r => asText.includes(r.quote)).length;
   eq('reviews: every one is crawlable text', present, reviews.length);
-  eq('reviews: a chip for each', (files['index.html'].match(/class="rv-chip"|class="rv-chip is-active"/g) || []).length, 6);
+  eq('reviews: a chip for each',
+     locateAll(readPath(files['index.html'], [{ cls: 'rv-chips' }]), { cls: 'rv-chip' }).length,
+     reviews.length);
   ok('reviews: exactly one starts visible',
      (files['index.html'].match(/class="rv-slide is-active"/g) || []).length === 1);
 }
@@ -156,7 +160,7 @@ ok('model: no empty text field', Object.entries(model.text).every(([, v]) =>
   const res = applyChanges(files, { reviews: [...model.reviews, added] });
   const html = res.files['index.html'];
   ok('add: the new review is real text in the page', htmlToTextish(html).includes(added.quote));
-  eq('add: it gets a slide', (html.match(/class="rv-slide/g) || []).length - 1, 7);
+  eq('add: it gets a slide', readReviews(html).length, model.reviews.length + 1);
   ok('add: it gets a chip', html.includes('>Media wall</span>'));
   ok('add: it is hidden but present', html.includes('aria-hidden="true"'));
 }
