@@ -24,6 +24,11 @@ const ok = (n, c, d) => c ? passed++ : (failed++, failures.push(`${n}${d ? ' —
 const eq = (n, a, b) => ok(n, a === b, a === b ? '' : `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
 
 const LIVE_PAGES = ['index.html','about.html','services.html','gallery.html','contact.html','privacy-policy.html'];
+
+// The editor's script was moved out of the page so its CSP could forbid
+// inline script. Behaviour is asserted against app.js; markup and policy
+// against index.html.
+const APP = readFileSync(join(HERE, '..', 'app.js'), 'utf8');
 const TOKEN_RE = /gh[ps]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}/;
 
 /* ---------- 1. No editor code reaches the public pages ---------- */
@@ -39,7 +44,7 @@ for (const page of LIVE_PAGES) {
 /* ---------- 2. The editor page keeps itself out of search ---------- */
 
 {
-  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8');
+  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8') + APP;
   ok('editor: has noindex', /name=["']robots["'][^>]*noindex/i.test(html));
   ok('editor: stores the key only in the browser', html.includes('localStorage'));
   ok('editor: ships no hard-coded credential', !TOKEN_RE.test(html));
@@ -59,7 +64,7 @@ for (const page of LIVE_PAGES) {
 /* ---------- 2b. Password managers can save and fill the login ---------- */
 
 {
-  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8');
+  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8') + APP;
 
   // iOS Keychain and Google Password Manager generally will not offer to
   // save a password-only form. A username field is what they file it under.
@@ -99,7 +104,7 @@ for (const page of LIVE_PAGES) {
 /* ---------- 2c. A just-uploaded photo is never shown as broken ---------- */
 
 {
-  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8');
+  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8') + APP;
 
   // GitHub Pages takes about a minute to rebuild, so a photo added moments
   // ago 404s on the live site. Both the editor's own thumbnails and the
@@ -121,7 +126,7 @@ for (const page of LIVE_PAGES) {
 /* ---------- 2d. Crop tool, and confirming a change went live ---------- */
 
 {
-  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8');
+  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8') + APP;
 
   // The frame is the canvas, so the preview cannot disagree with the result.
   ok('crop: the tool exists', html.includes('async function cropSheet'));
@@ -206,7 +211,7 @@ for (const page of LIVE_PAGES) {
    ------------------------------------------------------------ */
 
 {
-  const browserFiles = ['index.html', 'content.js', 'render.js'];
+  const browserFiles = ['app.js', 'content.js', 'render.js'];
   const stamps = new Set();
   let bare = [];
 
@@ -243,9 +248,12 @@ for (const page of LIVE_PAGES) {
   for (const page of LIVE_PAGES) {
     const html = readFileSync(join(SITE, page), 'utf8');
     ok(`consent: ${page} loads no analytics of its own`,
-       !html.includes('googletagmanager'),
+       !/<script[^>]+src="[^"]*googletagmanager/.test(html),
        'a tag in the markup runs before any choice can be made');
     ok(`consent: ${page} has no inline gtag call`, !/gtag\s*\(/.test(html));
+    // The policy naming googletagmanager is correct — it permits the
+    // script the consent banner may later inject, it does not load it.
+    ok(`consent: ${page} permits it only via the policy`, html.includes('script-src'));
     ok(`consent: ${page} includes the consent script`, html.includes('cookies-v2.js'));
     ok(`consent: ${page} includes the consent styles`, html.includes('cookies-v2.css'));
   }
@@ -284,6 +292,63 @@ for (const page of LIVE_PAGES) {
      policy.includes('_ga') && policy.includes('Google Analytics'));
   ok('consent: the policy explains how to change your mind',
      /Cookie choice/.test(policy));
+}
+
+/* ---------- 2i. Security policy ----------
+   GitHub Pages cannot set HTTP response headers, so what can be done
+   from the document itself is done: a Content-Security-Policy and a
+   referrer policy via meta. Three headers (X-Content-Type-Options,
+   X-Frame-Options, Permissions-Policy) have no meta equivalent and
+   are simply unavailable on this host — that is a limitation to state
+   plainly, not to paper over.
+   ------------------------------------------------------------ */
+
+{
+  const cspOf = html => (html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/) || [])[1];
+
+  for (const page of LIVE_PAGES) {
+    const html = readFileSync(join(SITE, page), 'utf8');
+    const csp = cspOf(html);
+    ok(`csp: ${page} has a policy`, !!csp);
+    if (!csp) continue;
+
+    // Placed before anything it is meant to govern.
+    ok(`csp: ${page} policy precedes the first resource`,
+       html.indexOf('Content-Security-Policy') < html.indexOf('<link'));
+
+    // The pages carry no executable inline script, so the policy must
+    // not weaken script-src — that is the whole value of having one.
+    const scriptSrc = /script-src ([^;]+)/.exec(csp)[1];
+    ok(`csp: ${page} script-src has no 'unsafe-inline'`, !scriptSrc.includes("'unsafe-inline'"), scriptSrc);
+    ok(`csp: ${page} script-src has no 'unsafe-eval'`, !scriptSrc.includes("'unsafe-eval'"));
+
+    for (const d of ['default-src', 'base-uri', 'object-src', 'form-action', 'frame-ancestors']) {
+      ok(`csp: ${page} sets ${d}`, csp.includes(d + ' '));
+    }
+    ok(`csp: ${page} blocks plugins`, /object-src 'none'/.test(csp));
+    ok(`csp: ${page} upgrades insecure requests`, csp.includes('upgrade-insecure-requests'));
+    ok(`csp: ${page} sets a referrer policy`, /name="referrer" content="strict-origin/.test(html));
+
+    // Everything the page genuinely loads has to be allowed, or the
+    // policy breaks the site — which is worse than not having one.
+    if (html.includes('fonts.googleapis.com')) ok(`csp: ${page} allows the font stylesheet`, csp.includes('https://fonts.googleapis.com'));
+    if (html.includes('fonts.gstatic.com')) ok(`csp: ${page} allows the font files`, csp.includes('https://fonts.gstatic.com'));
+    ok(`csp: ${page} allows analytics once consented`, csp.includes('googletagmanager.com'));
+    ok(`csp: ${page} allows its own data: images`, /img-src[^;]*data:/.test(csp));
+  }
+
+  // The editor holds an access key, so its policy is the strict one —
+  // which is why its script was moved out of the page.
+  const admin = readFileSync(join(ADMIN, 'index.html'), 'utf8');
+  const adminCsp = cspOf(admin);
+  ok('csp: the editor has a policy', !!adminCsp);
+  ok('csp: the editor allows no inline script at all', /script-src 'self';/.test(adminCsp), adminCsp);
+  ok('csp: the editor carries no inline module', !/<script type="module">/.test(admin));
+  ok('csp: the editor loads its script from a file', /src="\.\/app\.js/.test(admin));
+  ok('csp: the editor may reach GitHub', adminCsp.includes('https://api.github.com'));
+  ok('csp: the editor may show blob previews', /img-src[^;]*blob:/.test(adminCsp));
+  ok('csp: the editor cannot be framed', adminCsp.includes("frame-ancestors 'none'"));
+  ok('csp: the extracted script exists', existsSync(join(ADMIN, 'app.js')));
 }
 
 /* ---------- 3. Reviews are in the page, and the script still drives them ---------- */
@@ -360,9 +425,8 @@ for (const page of LIVE_PAGES) {
   ok('deps: no third-party imports', bad.length === 0, bad.join(', '));
   ok('deps: engine modules present', files.length >= 5, `${files.length} files`);
 
-  const html = readFileSync(join(ADMIN, 'index.html'), 'utf8');
-  const imports = [...html.matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
-  ok('deps: editor page imports locally only', imports.length > 0 && imports.every(i => i.startsWith('./')), imports.join(', '));
+  const imports = [...APP.matchAll(/from\s+['"]([^'"]+)['"]/g)].map(m => m[1]);
+  ok('deps: the editor imports locally only', imports.length > 0 && imports.every(i => i.startsWith('./')), imports.join(', '));
 }
 
 /* ---------- 7. GitHub Pages will publish the editor unchanged ---------- */
