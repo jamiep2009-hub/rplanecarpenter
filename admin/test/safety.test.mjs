@@ -351,6 +351,48 @@ for (const page of LIVE_PAGES) {
   ok('csp: the extracted script exists', existsSync(join(ADMIN, 'app.js')));
 }
 
+/* ---------- 2j. Batch upload, drafts, and tidying up ---------- */
+
+{
+  // Adding ten photos one at a time was the biggest friction in daily
+  // use; unpublished work living only in page memory was the biggest risk.
+  ok('batch: a multi-select input exists', /<input type="file"[^>]*multiple[^>]*id="batchFile"/.test(APP));
+  ok('batch: an "add several" control', APP.includes('data-addmany'));
+  ok('batch: photos are centre-cropped without the crop tool', APP.includes('async function autoProcess'));
+  ok('batch: progress is shown per photo', APP.includes('async function addSeveral'));
+  ok('batch: captions are collected in one list', APP.includes('function captionBatch'));
+  ok('batch: it cannot exceed the section limit', /const room = max - list\.length/.test(APP));
+  ok('batch: a failed photo does not stop the rest', /catch \(err\) \{\s*status\.textContent/.test(APP));
+  ok('batch: single-photo adding still goes through the crop tool',
+     APP.includes("cropAndUpload(file, CROP.tile"));
+
+  ok('draft: work is written to the device as it is typed', APP.includes('function saveDraft'));
+  ok('draft: saving is debounced', /clearTimeout\(draftTimer\)/.test(APP));
+  ok('draft: it is offered back on return', APP.includes('async function offerDraft'));
+  ok('draft: publishing clears it', /S\.base = clone\(S\.draft\);\s*\n\s*clearDraft\(\);/.test(APP));
+  ok('draft: signing out clears it', /localStorage\.removeItem\(KEY_STORE\);\s*\n\s*clearDraft\(\)/.test(APP));
+  ok('draft: a stale one expires rather than lingering', /14 \* 86400000/.test(APP));
+  ok('draft: it warns when the site has moved on', APP.includes('saved.sha !== S.sha'));
+  ok('draft: private browsing does not break it', /catch \(e\) \{ \/\* private mode/.test(APP));
+
+  ok('tidy: a screen exists', APP.includes('function viewTidy'));
+  ok('tidy: it confirms before removing', APP.includes("'Remove them'"));
+  ok('tidy: removal is one commit', APP.includes('deleteFiles(paths'));
+  ok('tidy: the answer is recomputed after a reload', /S\.unused = null;/.test(APP));
+}
+
+{
+  // The scan must read more than the editable pages. The hero photo and
+  // the van are referenced only from CSS; scanning pages alone would
+  // offer to delete both.
+  const schema = readFileSync(join(ADMIN, 'schema.js'), 'utf8');
+  ok('tidy: stylesheets are scanned for references', /REFERENCE_FILES/.test(schema));
+  for (const f of ['style.css', 'van-v2.css']) {
+    ok(`tidy: ${f} is scanned`, schema.includes(`'${f}'`));
+  }
+  ok('tidy: the editor reads that wider list', APP.includes('readFiles(REFERENCE_FILES)'));
+}
+
 /* ---------- 3. Reviews are in the page, and the script still drives them ---------- */
 
 {

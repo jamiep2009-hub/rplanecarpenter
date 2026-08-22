@@ -24,6 +24,26 @@ export const EDITABLE_FILES = [
 /** Directory new photos are committed into. */
 export const IMAGE_DIR = 'images';
 
+/**
+ * Everything that might mention an image, for working out which are
+ * unused. Wider than EDITABLE_FILES on purpose: the hero photo and the
+ * van are referenced only from CSS, and scanning just the pages would
+ * cheerfully offer to delete both.
+ */
+export const REFERENCE_FILES = [
+  ...EDITABLE_FILES,
+  'style.css',
+  'van-v2.css',
+  'map-v2.css',
+  'header-v2.css',
+  'photos-v2.css',
+  'reviews-v2.css',
+  'transformation-v2.css',
+  'cookies-v2.css',
+  'script.js',
+  'reviews-v2.js',
+];
+
 /* ------------------------------------------------------------
    Text fields
    type:

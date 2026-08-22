@@ -8,12 +8,12 @@
    on the site; a strict policy is worth the extra file.
    ============================================================ */
 
-import { GitHub } from './github.js?v=3';
-import { seal, unseal, suggestPassphrase, strength } from './crypto.js?v=3';
-import { readModel, applyChanges } from './content.js?v=3';
+import { GitHub } from './github.js?v=4';
+import { seal, unseal, suggestPassphrase, strength } from './crypto.js?v=4';
+import { readModel, applyChanges, findUnusedImages } from './content.js?v=4';
 import {
-  EDITABLE_FILES, IMAGE_DIR, GALLERY_CATEGORIES, BENTO_SIZES, groupedTextFields,
-} from './schema.js?v=3';
+  EDITABLE_FILES, REFERENCE_FILES, IMAGE_DIR, GALLERY_CATEGORIES, BENTO_SIZES, groupedTextFields,
+} from './schema.js?v=4';
 
 /* ============================================================
    Configuration — the repository this editor maintains.
@@ -21,6 +21,7 @@ import {
 const REPO = { owner: 'jamiep2009-hub', repo: 'rplanecarpenter', branch: 'main' };
 const SITE = location.origin;
 const KEY_STORE = 'rpc-editor-key';
+const DRAFT_STORE = 'rpc-editor-draft';
 const LOCK_FILE = 'admin/key.enc';   // the password-protected access key
 
 /* ============================================================
@@ -60,6 +61,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&l
 const S = {
   gh:null, ready:false, loading:true, view:'menu', group:null,
   files:null, sha:null, base:null, draft:null, images:[], schema:null, busy:false,
+  unused:null,      // images nothing points at; null until looked up
+  tidyPicked:new Set(),
   lock:null,        // the encrypted key from the website, if one exists
   mode:'checking',  // checking | password | key | ready
 };
@@ -100,6 +103,84 @@ function toast (msg, kind = 'ok', ms = 3800) {
 }
 
 /* ============================================================
+   Unpublished work
+
+   Edits live in the page's memory, so a phone call, a backgrounded
+   tab or an accidental close used to lose them. The working copy is
+   now written to the device as it is typed and offered back on
+   return. It is cleared the moment it is published.
+   ============================================================ */
+
+let draftTimer = null;
+
+function saveDraft () {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(function () {
+    try {
+      if (!S.draft || changeCount() === 0) { localStorage.removeItem(DRAFT_STORE); return; }
+      localStorage.setItem(DRAFT_STORE, JSON.stringify({
+        at: Date.now(), sha: S.sha, draft: S.draft,
+      }));
+    } catch (e) { /* private mode, or full — the session still holds it */ }
+  }, 600);
+}
+
+function clearDraft () {
+  clearTimeout(draftTimer);
+  try { localStorage.removeItem(DRAFT_STORE); } catch (e) { /* ignore */ }
+}
+
+function readDraft () {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORE);
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    if (!v || !v.draft) return null;
+    if ((Date.now() - (v.at || 0)) > 14 * 86400000) return null;   // stale
+    return v;
+  } catch (e) { return null; }
+}
+
+function describeAge (ms) {
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 1) return 'a moment ago';
+  if (m < 60) return m + (m === 1 ? ' minute ago' : ' minutes ago');
+  const h = Math.round(m / 60);
+  if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
+  const d = Math.round(h / 24);
+  return d + (d === 1 ? ' day ago' : ' days ago');
+}
+
+/** Offer unpublished work back, once the site has loaded. */
+async function offerDraft () {
+  const saved = readDraft();
+  if (!saved) return;
+
+  // Count what is actually different from what is now live.
+  const was = S.draft;
+  S.draft = saved.draft;
+  const n = changeCount();
+  S.draft = was;
+
+  if (n === 0) { clearDraft(); return; }
+
+  const moved = saved.sha && S.sha && saved.sha !== S.sha;
+  const keep = await confirmSheet(
+    'Unpublished changes',
+    `You have ${n} change${n > 1 ? 's' : ''} from ${describeAge(saved.at)} that were never published.` +
+    (moved ? ' The website has changed since, so some may no longer fit.' : ''),
+    'Restore them');
+
+  if (keep) {
+    S.draft = saved.draft;
+    render();
+    toast('Restored. Publish when you are ready.', 'ok', 4200);
+  } else {
+    clearDraft();
+  }
+}
+
+/* ============================================================
    Change tracking
    ============================================================ */
 function changes () {
@@ -124,6 +205,7 @@ function changeCount () {
   return n;
 }
 function syncBar () {
+  saveDraft();
   const n = changeCount();
   $('bar').classList.toggle('show', n > 0 && S.ready);
   $('barTxt').innerHTML = n ? `${n} unsaved change${n > 1 ? 's' : ''}<small>Preview, then publish to go live</small>` : '';
@@ -438,6 +520,11 @@ function viewMenu () {
   </div>
   <div class="sec-title">Site</div>
   <div class="menu">
+    <button class="menu-item" data-go="tidy">
+      <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.bin, 20)}</span>
+      <span class="menu-txt"><strong>Tidy up photos</strong><span>Remove photos nothing on the site uses</span></span>
+      ${svg(I.chev, 17)}
+    </button>
     <button class="menu-item" data-go="login">
       <span class="menu-ico" style="background:var(--surface-2);color:var(--ink-2)">${svg(I.lock, 20)}</span>
       <span class="menu-txt"><strong>Password login</strong><span>${S.lock ? 'Change the password' : 'Sign in with a password instead of a key'}</span></span>
@@ -499,8 +586,13 @@ function viewTiles (kind) {
       ? 'These are the photos on your front page. Keep it to your best work — around 10 looks best.'
       : 'These photos appear on your Gallery page and can be filtered by type.'}</span></div>
     ${tileRows(list, kind)}
-    <button class="btn btn-gold btn-block" data-add="1" style="margin-top:14px" ${list.length >= max ? 'disabled' : ''}>
-      ${svg(I.plus,15)} Add photo</button>`;
+    <div class="two" style="margin-top:14px">
+      <button class="btn btn-gold" data-add="1" ${list.length >= max ? 'disabled' : ''}>
+        ${svg(I.plus,15)} Add photo</button>
+      <button class="btn" data-addmany="1" ${list.length >= max ? 'disabled' : ''}>
+        ${svg(I.up2,15)} Add several</button>
+    </div>
+    <input type="file" accept="image/*" multiple id="batchFile" class="hidden">`;
 }
 
 function viewBeforeAfter () {
@@ -620,6 +712,47 @@ function viewHandover () {
     </div></div>`;
 }
 
+function viewTidy () {
+  const list = S.unused;
+
+  if (list === null) {
+    return `<div class="center" style="min-height:40vh"><div class="spinner"></div><span>Looking through your photos…</span></div>`;
+  }
+  if (!list.length) {
+    return `<div class="empty">${svg(I.check, 38)}<p>Nothing to tidy — every photo on the site is being used.</p></div>`;
+  }
+
+  const total = list.reduce((n, i) => n + (i.size || 0), 0);
+  return `<div class="note">${svg(I.warn,17)}<span>These photos are on the website but nothing points at them &mdash; usually a photo added and then not published. Removing them changes nothing that visitors see.</span></div>
+
+    ${list.map((im, i) => `
+      <div class="card"><div class="card-b">
+        <div class="row">
+          <img class="thumb" src="${esc(imgUrl(im.path))}" alt="" loading="lazy">
+          <div class="row-main">
+            <div class="t" style="font-family:var(--mono);font-size:13px;word-break:break-all">${esc(im.path.replace('images/',''))}</div>
+            <div class="s">${Math.round((im.size || 0) / 1024)} KB &middot; not used anywhere</div>
+            <label class="pill" style="cursor:pointer;margin-top:9px;display:inline-flex;align-items:center;gap:7px">
+              <input type="checkbox" data-tidy="${i}" ${S.tidyPicked.has(im.path) ? 'checked' : ''} style="margin:0">
+              Remove this one
+            </label>
+          </div>
+        </div>
+      </div></div>`).join('')}
+
+    <div class="card" style="margin-top:14px"><div class="card-b">
+      <button class="btn btn-block" data-tidyall="1" style="margin-bottom:10px">
+        ${S.tidyPicked.size === list.length ? 'Clear selection' : `Select all ${list.length}`}
+      </button>
+      <button class="btn btn-danger btn-block" data-tidygo="1" ${S.tidyPicked.size ? '' : 'disabled'}>
+        ${svg(I.bin,15)} Remove ${S.tidyPicked.size || 'nothing'}${S.tidyPicked.size ? ` of ${list.length}` : ''}
+      </button>
+      <div class="hint" style="text-align:center;margin-top:9px">
+        ${list.length} unused &middot; ${(total / 1048576).toFixed(1)} MB in total
+      </div>
+    </div></div>`;
+}
+
 function viewTowns () {
   const towns = S.draft.towns || [];
   return `<div class="note">${svg(I.warn,17)}<span>These appear under the map on your contact page, and are also what tells Google which areas you cover. Both are updated together.</span></div>
@@ -690,6 +823,7 @@ const TITLES = {
   handover:'Set up another device',
   login:'Password login',
   towns:'Towns covered',
+  tidy:'Tidy up photos',
 };
 
 function render (err) {
@@ -714,7 +848,8 @@ function render (err) {
     S.view === 'contact' ? viewContact() :
     S.view === 'handover' ? viewHandover() :
     S.view === 'login' ? viewLogin() :
-    S.view === 'towns' ? viewTowns() : '';
+    S.view === 'towns' ? viewTowns() :
+    S.view === 'tidy' ? viewTidy() : '';
 
   root.innerHTML = `<div class="app">
     <header class="topbar">
@@ -904,6 +1039,150 @@ function editReview (index) {
 }
 
 /* ============================================================
+   Adding several photos at once
+
+   The single-photo flow asks for a crop and a caption per photo,
+   which is right for one and painful for ten. After a job there are
+   usually ten. These are centre-cropped and uploaded together, then
+   captioned in one list — and any of them can still be opened and
+   cropped properly afterwards.
+   ============================================================ */
+
+/** Centre-crop and encode without opening the crop tool. */
+async function autoProcess (file, { ratio, outW, outH, quality }) {
+  if (!file.type.startsWith('image/')) throw new Error(`${file.name} is not an image.`);
+
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch { bmp = await createImageBitmap(file); }
+
+  let sx = 0, sy = 0, sw = bmp.width, sh = bmp.height;
+  if (sw / sh > ratio) { const nw = Math.round(sh * ratio); sx = Math.round((sw - nw) / 2); sw = nw; }
+  else { const nh = Math.round(sw / ratio); sy = Math.round((sh - nh) / 2); sh = nh; }
+
+  const c = document.createElement('canvas');
+  c.width = outW; c.height = outH;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, outW, outH);
+
+  const type = supportsWebp() ? 'image/webp' : 'image/jpeg';
+  const main = await new Promise(r => c.toBlob(r, type, quality));
+
+  const lc = document.createElement('canvas');
+  const lw = 24, lh = Math.max(1, Math.round(lw * outH / outW));
+  lc.width = lw; lc.height = lh;
+  lc.getContext('2d').drawImage(c, 0, 0, lw, lh);
+  const lqip = await new Promise(r => lc.toBlob(r, 'image/jpeg', 0.4));
+
+  bmp.close?.();
+  return { main, lqip, width: outW, height: outH, ext: type === 'image/webp' ? 'webp' : 'jpg' };
+}
+
+async function addSeveral (kind, files) {
+  const list = S.draft[kind];
+  const max = kind === 'bento' ? 12 : 60;
+  const room = max - list.length;
+  if (room <= 0) return toast('There is no room for more photos here.', 'warn');
+
+  const chosen = [...files].slice(0, Math.min(room, 12));
+  if (chosen.length < files.length) {
+    toast(`Adding the first ${chosen.length} — that is all there is room for.`, 'warn', 5000);
+  }
+
+  const w = sheet(`Adding ${chosen.length} photos`, `
+    <div id="batchList">${chosen.map((f, i) => `
+      <div class="row" style="padding:10px 0;border-top:${i ? '1px solid var(--line-2)' : '0'}">
+        <div class="thumb" id="bt-${i}" style="display:grid;place-items:center"><div class="spinner"></div></div>
+        <div class="row-main">
+          <div class="t" style="font-size:13.5px;word-break:break-all">${esc(f.name)}</div>
+          <div class="s" id="bs-${i}">Waiting…</div>
+        </div>
+      </div>`).join('')}</div>
+  `, '');
+
+  const done = [];
+  for (let i = 0; i < chosen.length; i++) {
+    const status = w.querySelector(`#bs-${i}`);
+    const thumb = w.querySelector(`#bt-${i}`);
+    try {
+      status.textContent = 'Processing…';
+      const out = await autoProcess(chosen[i], CROP.tile);
+      status.textContent = 'Uploading…';
+      const up = await uploadProcessed(out, chosen[i].name, kind);
+      thumb.outerHTML = `<img class="thumb" src="${esc(imgUrl(up.path))}" alt="">`;
+      w.querySelector(`#bs-${i}`).textContent = 'Added';
+      done.push({ ...up, name: chosen[i].name });
+    } catch (err) {
+      status.textContent = err.message;
+      status.style.color = 'var(--err)';
+    }
+  }
+
+  w.remove();
+  if (!done.length) return toast('None of those could be added.', 'err');
+  captionBatch(kind, done);
+}
+
+/** One list, one category, a title each — then they are all in. */
+function captionBatch (kind, uploaded) {
+  const list = S.draft[kind];
+
+  const niceName = n => n.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase()).slice(0, 60);
+
+  const shared = kind === 'gallery'
+    ? `<div class="field"><label>Which filter do these belong to?</label>
+        <select class="sel" id="bCat">${GALLERY_CATEGORIES.map(c =>
+          `<option value="${c.value}">${esc(c.label)}</option>`).join('')}</select></div>`
+    : `<div class="field"><label>Tile size for these</label>
+        <select class="sel" id="bSize">${BENTO_SIZES.map(c =>
+          `<option value="${c.value}">${esc(c.label)}</option>`).join('')}</select></div>`;
+
+  const w = sheet(`Name these ${uploaded.length}`, `
+    <div class="field"><label>Short label for all of them</label>
+      <input class="inp" id="bTag" placeholder="Fitted Kitchen" maxlength="40">
+      <div class="hint">The small gold text above each title.</div></div>
+    ${shared}
+    <div class="sec-title">Titles</div>
+    ${uploaded.map((u, i) => `
+      <div class="row" style="padding:11px 0;border-top:${i ? '1px solid var(--line-2)' : '0'}">
+        <img class="thumb" src="${esc(imgUrl(u.path))}" alt="" style="width:56px;height:56px">
+        <div class="row-main">
+          <input class="inp" data-bt="${i}" value="${esc(niceName(u.name))}" maxlength="90">
+        </div>
+      </div>`).join('')}
+  `, `<button class="btn" data-close="1">Cancel</button>
+      <button class="btn btn-gold" data-badd="1">Add all ${uploaded.length}</button>`);
+
+  w.addEventListener('click', e => {
+    if (!e.target.closest('[data-badd]')) return;
+    const tag = w.querySelector('#bTag').value.trim();
+    if (!tag) return toast('Please add a short label.', 'err');
+
+    const cat = kind === 'gallery' ? w.querySelector('#bCat').value : null;
+    const size = kind === 'bento' ? w.querySelector('#bSize').value : null;
+
+    let added = 0;
+    uploaded.forEach((u, i) => {
+      const title = w.querySelector(`[data-bt="${i}"]`).value.trim() || tag;
+      const t = {
+        src: u.path, title, tag,
+        alt: `${title} — ${tag} by R. Plane Carpenter, Norwich.`,
+        width: u.width, height: u.height,
+      };
+      if (kind === 'gallery') t.category = cat; else t.size = size;
+      list.push(t);
+      added++;
+    });
+
+    w.remove();
+    render();
+    toast(`${added} photos added. Publish when you are ready.`, 'ok', 5000);
+  });
+}
+
+/* ============================================================
    Going live
 
    GitHub Pages rebuilds a minute or so after a commit, so
@@ -1028,6 +1307,7 @@ async function doPublish () {
     S.files = done.files;
     S.sha = done.sha;
     S.base = clone(S.draft);
+    clearDraft();
 
     if (!done.committed) {
       toast('Nothing had actually changed.', 'warn', 4200);
@@ -1055,6 +1335,25 @@ async function doPublish () {
   }
 }
 
+/**
+ * Work out which photos nothing points at. Reads more than the editable
+ * pages — the hero and the van are referenced only from CSS, and
+ * scanning the pages alone would offer to delete both.
+ */
+async function findUnused () {
+  if (S.unused !== null) return;                 // already looked
+  render();
+  try {
+    const { files } = await S.gh.readFiles(REFERENCE_FILES);
+    S.unused = findUnusedImages(files, S.images);
+    S.tidyPicked = new Set();
+  } catch (err) {
+    S.unused = [];
+    toast(err.message, 'err', 6000);
+  }
+  render();
+}
+
 /* ============================================================
    Load
    ============================================================ */
@@ -1069,6 +1368,8 @@ async function load () {
     S.sha = sha;
     S.base = readModel(files);
     S.draft = clone(S.base);
+    S.unused = null;
+    S.tidyPicked = new Set();
     S.images = (await S.gh.listDir(IMAGE_DIR, sha))
       .filter(i => /\.(jpg|jpeg|png|webp)$/i.test(i.path) && !/-lqip\.jpg$/i.test(i.path))
       .map(i => ({ path: i.path, size: i.size }));
@@ -1139,6 +1440,7 @@ document.addEventListener('submit', async e => {
       S.gh = new GitHub({ token: key, ...REPO });
       localStorage.setItem(KEY_STORE, key);
       await load();
+      if (S.ready) offerDraft();
     } catch (err) {
       btn.disabled = false; btn.textContent = 'Sign in';
       render(err.message);
@@ -1167,6 +1469,42 @@ document.addEventListener('click', async e => {
   const go = e.target.closest('[data-go]');
   if (go) { S.view = go.dataset.go; S.group = null; render(); window.scrollTo(0,0); return; }
 
+  if (go && go.dataset.go === 'tidy') { findUnused(); }
+
+  const tidyAll = e.target.closest('[data-tidyall]');
+  if (tidyAll) {
+    if (S.tidyPicked.size === (S.unused || []).length) S.tidyPicked.clear();
+    else (S.unused || []).forEach(i => S.tidyPicked.add(i.path));
+    render();
+    return;
+  }
+
+  const tidyGo = e.target.closest('[data-tidygo]');
+  if (tidyGo) {
+    const paths = [...S.tidyPicked];
+    if (!paths.length) return;
+    if (!(await confirmSheet(
+      `Remove ${paths.length} photo${paths.length > 1 ? 's' : ''}?`,
+      'They are not used anywhere on the website, so nothing visitors see will change. This can be undone.',
+      'Remove them'))) return;
+
+    tidyGo.disabled = true;
+    const label = tidyGo.innerHTML;
+    tidyGo.innerHTML = '<div class="spinner"></div>';
+    try {
+      await S.gh.deleteFiles(paths, `tidy up ${paths.length} unused photo(s)`);
+      S.unused = (S.unused || []).filter(i => !S.tidyPicked.has(i.path));
+      S.images = S.images.filter(i => !S.tidyPicked.has(i.path));
+      S.tidyPicked.clear();
+      toast('Removed. The website is unchanged for visitors.', 'ok', 5000);
+      render();
+    } catch (err) {
+      toast(err.message, 'err', 6500);
+      tidyGo.disabled = false; tidyGo.innerHTML = label;
+    }
+    return;
+  }
+
   const grp = e.target.closest('[data-grp]');
   if (grp) { const i = Number(grp.dataset.grp); S.group = S.group === i ? null : i; render(); return; }
 
@@ -1177,6 +1515,7 @@ document.addEventListener('click', async e => {
     if (a === 'forget') {
       if (changeCount() && !(await confirmSheet('Sign out?', 'You have unsaved changes that will be lost.', 'Sign out'))) return;
       localStorage.removeItem(KEY_STORE);
+      clearDraft();
       S.gh = null; S.ready = false; S.draft = null; S.base = null;
       render(); return;
     }
@@ -1193,6 +1532,8 @@ document.addEventListener('click', async e => {
 
   const add = e.target.closest('[data-add]');
   if (add && editor) { editor(null); return; }
+
+  if (e.target.closest('[data-addmany]')) { $('batchFile')?.click(); return; }
   const ed = e.target.closest('[data-edit]');
   if (ed && editor) { editor(Number(ed.dataset.edit)); return; }
 
@@ -1269,6 +1610,22 @@ document.addEventListener('click', async e => {
 
   if (e.target.closest('#btnPreview')) return doPreview();
   if (e.target.closest('#btnPublish')) return doPublish();
+});
+
+document.addEventListener('change', async e => {
+  if (e.target.id === 'batchFile') {
+    const files = e.target.files;
+    e.target.value = '';
+    if (files && files.length) await addSeveral(S.view, files);
+    return;
+  }
+
+  const box = e.target.closest('[data-tidy]');
+  if (!box) return;
+  const im = (S.unused || [])[Number(box.dataset.tidy)];
+  if (!im) return;
+  if (box.checked) S.tidyPicked.add(im.path); else S.tidyPicked.delete(im.path);
+  render();
 });
 
 document.addEventListener('input', e => {
@@ -1355,6 +1712,7 @@ async function fetchLock () {
     S.gh = new GitHub({ token: saved, ...REPO });
     await load();
     if (linked && S.ready) toast('This device is set up. You can start editing.', 'ok', 5200);
+    else if (S.ready) offerDraft();
     return;
   }
 

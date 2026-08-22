@@ -11,14 +11,14 @@
 import {
   readPath, replacePath, locateAll, readAttrPath,
   htmlToText, textToHtml, escapeHtml, inlineToText, textToInline,
-} from './htmledit.js?v=3';
+} from './htmledit.js?v=4';
 import {
   TEXT_FIELDS, COLLECTIONS, getTextField, EDITABLE_FILES, SCHEMA_ORG_FILES,
-} from './schema.js?v=3';
+} from './schema.js?v=4';
 import {
   renderGalleryGrid, renderBentoGrid, renderBeforeAfterGallery,
   renderReviewChips, renderReviewSlides, renderTownList,
-} from './render.js?v=3';
+} from './render.js?v=4';
 
 /* ------------------------------------------------------------
    Headings: "line one<br><em>line two</em>"
@@ -379,6 +379,32 @@ export function writeContact (files, current, next) {
     out[file] = s;
   }
   return out;
+}
+
+/* ------------------------------------------------------------
+   Unused photos
+
+   Uploads commit straight away so the editor can show a preview,
+   which means a photo added but never published stays behind. This
+   finds those. It errs entirely on the side of keeping things: a file
+   is only unused if NOTHING in any scanned file mentions its name.
+   ------------------------------------------------------------ */
+
+export function findUnusedImages (files, images) {
+  const referenced = new Set();
+
+  for (const src of Object.values(files)) {
+    if (typeof src !== 'string') continue;
+    for (const m of src.matchAll(/images\/[A-Za-z0-9._-]+/g)) referenced.add(m[0]);
+  }
+
+  // A blur placeholder belongs to its photo — if the photo is in use,
+  // so is the placeholder, even where only one of them is written out.
+  for (const path of [...referenced]) {
+    referenced.add(path.replace(/\.(jpg|jpeg|png|webp)$/i, '-lqip.jpg'));
+  }
+
+  return images.filter(i => !referenced.has(i.path));
 }
 
 /* ------------------------------------------------------------
