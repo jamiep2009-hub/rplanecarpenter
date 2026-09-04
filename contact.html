@@ -34,7 +34,10 @@
 {
   "@context": "https://schema.org",
   "@type": "HomeAndConstructionBusiness",
-  "additionalType": "https://schema.org/GeneralContractor",
+  "additionalType": [
+    "https://schema.org/GeneralContractor",
+    "http://www.productontology.org/id/Carpentry"
+  ],
   "@id": "https://rplanecarpenter.co.uk/#business",
   "name": "R. Plane Carpenter",
   "description": "Bespoke carpentry and joinery in Norwich and across Norfolk — fitted kitchens, wardrobes, media walls and custom furniture. One craftsman, established 2003.",
@@ -57,6 +60,7 @@
     "latitude": 52.6309,
     "longitude": 1.2974
   },
+  "hasMap": "https://www.google.com/maps/search/R+Plane+Carpenter+Norwich",
   "areaServed": [
     {
       "@type": "AdministrativeArea",
@@ -325,7 +329,10 @@
       <p class="mp-lead">Based in Norwich and working across the whole county &mdash; from the north coast to the Suffolk border. If you are near one of these, I can get to you.</p>
     </div>
 
-    <div class="mp-figure">
+    <a class="mp-figure mp-figure-link"
+       href="https://www.google.com/maps/search/R+Plane+Carpenter+Norwich"
+       target="_blank" rel="noopener"
+       aria-label="View R. Plane Carpenter service area on Google Maps">
       <svg class="mp-svg" viewBox="0 0 1000 620" role="img"
            aria-label="Map of Norfolk showing the towns R. Plane Carpenter works in, centred on Norwich">
         <defs>
@@ -369,7 +376,7 @@
       <text class="mp-label" x="514.1" y="453.2" text-anchor="start">Attleborough</text>
       <text class="mp-label" x="405.6" y="401.1" text-anchor="start">Watton</text>
       </svg>
-    </div>
+    </a>
 
     <div class="mp-towns">
       <p class="mp-towns-h">Towns and villages I regularly work in</p>

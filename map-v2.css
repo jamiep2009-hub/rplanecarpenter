@@ -43,6 +43,21 @@
 
 /* ---------- the map ---------- */
 .mp-figure { max-width: 860px; margin: 0 auto; }
+
+/* The map is a link to the Google Maps listing. Everything here exists
+   to make the anchor layout-neutral — it must behave exactly as the
+   div it replaced — plus a visible focus ring, which an interactive
+   element needs regardless. */
+.mp-figure-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+}
+.mp-figure-link:focus-visible {
+  outline: 2px solid #c4873d;
+  outline-offset: 6px;
+}
 .mp-svg { width: 100%; height: auto; display: block; overflow: visible; }
 
 .mp-shape {

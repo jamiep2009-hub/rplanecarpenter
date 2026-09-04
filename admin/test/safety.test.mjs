@@ -393,6 +393,76 @@ for (const page of LIVE_PAGES) {
   ok('tidy: the editor reads that wider list', APP.includes('readFiles(REFERENCE_FILES)'));
 }
 
+/* ---------- 2k. Local business structured data ---------- */
+
+{
+  for (const page of ['index.html', 'contact.html']) {
+    const raw = (readFileSync(join(SITE, page), 'utf8')
+      .match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) || [])[1];
+    ok(`schema: ${page} carries JSON-LD`, !!raw);
+    if (!raw) continue;
+
+    let j = null;
+    try { j = JSON.parse(raw); } catch (e) { failures.push(`schema: ${page} invalid — ${e.message}`); failed++; continue; }
+    passed++;
+
+    eq(`schema: ${page} is a real schema.org type`, j['@type'], 'HomeAndConstructionBusiness');
+    // There is no "Carpenter" type in schema.org. The trade is stated
+    // through additionalType instead, which is the supported way.
+    ok(`schema: ${page} states the trade via additionalType`,
+       Array.isArray(j.additionalType) && j.additionalType.some(t => /Carpentry/i.test(t)),
+       JSON.stringify(j.additionalType));
+
+    eq(`schema: ${page} names the business`, j.name, 'R. Plane Carpenter');
+    eq(`schema: ${page} address locality`, j.address.addressLocality, 'Norwich');
+    eq(`schema: ${page} address region`, j.address.addressRegion, 'Norfolk');
+    eq(`schema: ${page} country`, j.address.addressCountry, 'GB');
+    eq(`schema: ${page} telephone`, j.telephone, '+447990527683');
+    eq(`schema: ${page} email`, j.email, 'rplanecarpenter@hotmail.co.uk');
+
+    // Coordinates must be numbers, not strings — a common way to fail
+    // validation without anything looking wrong.
+    ok(`schema: ${page} latitude is numeric`, typeof j.geo.latitude === 'number', typeof j.geo.latitude);
+    ok(`schema: ${page} longitude is numeric`, typeof j.geo.longitude === 'number');
+    ok(`schema: ${page} centred on Norwich`,
+       Math.abs(j.geo.latitude - 52.6309) < 0.01 && Math.abs(j.geo.longitude - 1.2974) < 0.01);
+
+    ok(`schema: ${page} has hasMap`, typeof j.hasMap === 'string' && j.hasMap.startsWith('https://'));
+    ok(`schema: ${page} hasMap points at Google Maps`, /google\.[a-z.]+\/maps/.test(j.hasMap), j.hasMap);
+    ok(`schema: ${page} declares a service area`, Array.isArray(j.areaServed) && j.areaServed.length > 1);
+  }
+}
+
+/* ---------- 2l. The custom map: linked, but visually untouched ---------- */
+
+{
+  const html = readFileSync(join(SITE, 'contact.html'), 'utf8');
+  const css = readFileSync(join(SITE, 'map-v2.css'), 'utf8');
+
+  ok('map: the container is a link', /<a class="mp-figure mp-figure-link"/.test(html));
+  ok('map: it opens Google Maps', /href="https:\/\/www\.google\.com\/maps[^"]*"/.test(html));
+  ok('map: it opens in a new tab safely', /target="_blank"[\s\S]{0,40}rel="noopener"/.test(html));
+  ok('map: it is described for screen readers',
+     /aria-label="View R\. Plane Carpenter service area on Google Maps"/.test(html));
+  ok('map: the anchor is closed', html.includes('</a>\n\n    <div class="mp-towns">') || /<\/svg>\s*<\/a>/.test(html));
+
+  // The whole point was to change nothing visible. The anchor must be
+  // layout-neutral, and no existing rule may have been altered.
+  ok('map: the link is laid out as a block, like the div it replaced',
+     /\.mp-figure-link \{[^}]*display: block/.test(css));
+  ok('map: it inherits colour rather than turning link-blue',
+     /\.mp-figure-link \{[^}]*color: inherit/.test(css));
+  ok('map: it carries no underline', /\.mp-figure-link \{[^}]*text-decoration: none/.test(css));
+  ok('map: keyboard focus is visible', /\.mp-figure-link:focus-visible/.test(css));
+
+  // The drawing itself must be untouched.
+  ok('map: the county outline is still there', html.includes('class="mp-shape"'));
+  ok('map: the town markers are still there', (html.match(/class="mp-dot"/g) || []).length >= 10);
+  ok('map: Norwich is still the hub', html.includes('class="mp-hub"'));
+  ok('map: the crawlable town list is still there',
+     (html.match(/<li>[^<]+<\/li>/g) || []).length >= 10);
+}
+
 /* ---------- 3. Reviews are in the page, and the script still drives them ---------- */
 
 {

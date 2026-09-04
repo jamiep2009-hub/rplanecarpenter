@@ -139,7 +139,8 @@ ok('model: no empty text field', Object.entries(model.text).every(([, v]) =>
   eq('edit: adding a tile touches only gallery.html', res.changed.join(','), 'gallery.html');
 
   const grid = readPath(res.files['gallery.html'], [{ id: 'tileGrid' }]);
-  eq('edit: tile count is 11', locateAll(grid, { cls: 'tile' }).length, 11);
+  eq('edit: exactly one tile was added',
+     locateAll(grid, { cls: 'tile' }).length, model.gallery.length + 1);
 
   // The footer, header and before/after block must be untouched.
   const tail = files['gallery.html'].slice(files['gallery.html'].indexOf('<footer>'));
