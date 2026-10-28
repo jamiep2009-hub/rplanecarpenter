@@ -54,11 +54,11 @@ export const REFERENCE_FILES = [
 
 export const TEXT_FIELDS = [
   /* ---------- Home page ---------- */
-  { id: 'home.hero.eyebrow', file: 'index.html', group: 'Home page', label: 'Small line above the headline',
+  { id: 'home.hero.eyebrow', file: 'index.html', group: 'Home page', label: 'Banner — small line above the headline',
     path: [{ cls: 'hero-eyebrow' }], type: 'line', max: 80 },
-  { id: 'home.hero.title', file: 'index.html', group: 'Home page', label: 'Main headline',
+  { id: 'home.hero.title', file: 'index.html', group: 'Home page', label: 'Banner — headline',
     path: [{ cls: 'hero-h1' }], type: 'heading', max: 60 },
-  { id: 'home.hero.sub', file: 'index.html', group: 'Home page', label: 'Intro paragraph',
+  { id: 'home.hero.sub', file: 'index.html', group: 'Home page', label: 'Banner — intro paragraph',
     path: [{ cls: 'hero-sub' }], type: 'para', max: 320 },
 
   { id: 'home.services.eyebrow', file: 'index.html', group: 'Home page', label: 'Services — small line',
@@ -96,9 +96,9 @@ export const TEXT_FIELDS = [
   ])),
 
   /* ---------- About page ---------- */
-  { id: 'about.hero.title', file: 'about.html', group: 'About page', label: 'Page headline',
+  { id: 'about.hero.title', file: 'about.html', group: 'About page', label: 'Banner — page headline',
     path: [{ cls: 'page-hero-h' }], type: 'heading', max: 60 },
-  { id: 'about.hero.sub', file: 'about.html', group: 'About page', label: 'Page intro',
+  { id: 'about.hero.sub', file: 'about.html', group: 'About page', label: 'Banner — page intro',
     path: [{ cls: 'page-hero-sub' }], type: 'para', max: 300 },
   { id: 'about.body.title', file: 'about.html', group: 'About page', label: 'Section heading',
     path: [{ cls: 'about-grid' }, { tag: 'h2' }], type: 'line', max: 120 },
@@ -119,9 +119,9 @@ export const TEXT_FIELDS = [
     path: [{ cls: 'vsh-sub' }], type: 'line', max: 60 },
 
   /* ---------- Services page ---------- */
-  { id: 'services.hero.title', file: 'services.html', group: 'Services page', label: 'Page headline',
+  { id: 'services.hero.title', file: 'services.html', group: 'Services page', label: 'Banner — page headline',
     path: [{ cls: 'page-hero-h' }], type: 'heading', max: 60 },
-  { id: 'services.hero.sub', file: 'services.html', group: 'Services page', label: 'Page intro',
+  { id: 'services.hero.sub', file: 'services.html', group: 'Services page', label: 'Banner — page intro',
     path: [{ cls: 'page-hero-sub' }], type: 'para', max: 300 },
   ...[0, 1, 2, 3].flatMap(i => ([
     { id: `services.card.${i}.title`, file: 'services.html', group: 'Services page — cards',
@@ -133,9 +133,9 @@ export const TEXT_FIELDS = [
   ])),
 
   /* ---------- Gallery page ---------- */
-  { id: 'gallery.hero.title', file: 'gallery.html', group: 'Gallery page', label: 'Page headline',
+  { id: 'gallery.hero.title', file: 'gallery.html', group: 'Gallery page', label: 'Banner — page headline',
     path: [{ cls: 'page-hero-h' }], type: 'heading', max: 60 },
-  { id: 'gallery.hero.sub', file: 'gallery.html', group: 'Gallery page', label: 'Page intro',
+  { id: 'gallery.hero.sub', file: 'gallery.html', group: 'Gallery page', label: 'Banner — page intro',
     path: [{ cls: 'page-hero-sub' }], type: 'para', max: 300 },
   { id: 'gallery.ba.title', file: 'gallery.html', group: 'Gallery page', label: 'Before & After — heading',
     path: [{ cls: 'section-h' }], type: 'heading', max: 60 },
@@ -143,9 +143,9 @@ export const TEXT_FIELDS = [
     path: [{ cls: 'lead' }], type: 'para', max: 240 },
 
   /* ---------- Contact page ---------- */
-  { id: 'contact.hero.title', file: 'contact.html', group: 'Contact page', label: 'Page headline',
+  { id: 'contact.hero.title', file: 'contact.html', group: 'Contact page', label: 'Banner — page headline',
     path: [{ cls: 'page-hero-h' }], type: 'heading', max: 60 },
-  { id: 'contact.hero.sub', file: 'contact.html', group: 'Contact page', label: 'Page intro',
+  { id: 'contact.hero.sub', file: 'contact.html', group: 'Contact page', label: 'Banner — page intro',
     path: [{ cls: 'page-hero-sub' }], type: 'para', max: 300 },
   { id: 'contact.intro', file: 'contact.html', group: 'Contact page', label: 'Intro above the details',
     path: [{ cls: 'contact-intro' }], type: 'para', max: 320 },

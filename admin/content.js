@@ -11,14 +11,15 @@
 import {
   readPath, replacePath, locateAll, readAttrPath,
   htmlToText, textToHtml, escapeHtml, inlineToText, textToInline,
-} from './htmledit.js?v=4';
+} from './htmledit.js?v=5';
 import {
   TEXT_FIELDS, COLLECTIONS, getTextField, EDITABLE_FILES, SCHEMA_ORG_FILES,
-} from './schema.js?v=4';
+} from './schema.js?v=5';
 import {
   renderGalleryGrid, renderBentoGrid, renderBeforeAfterGallery,
   renderReviewChips, renderReviewSlides, renderTownList,
-} from './render.js?v=4';
+} from './render.js?v=5';
+import { ensureCredit } from './credit.js?v=5';
 
 /* ------------------------------------------------------------
    Headings: "line one<br><em>line two</em>"
@@ -455,6 +456,12 @@ export function applyChanges (files, changes) {
     for (const f of SCHEMA_ORG_FILES) {
       if (out[f] != null) out[f] = writeAreaServed(out[f], changes.towns);
     }
+  }
+
+  // The footer credit is template, not content: whatever an edit did,
+  // every page that is about to be saved carries it, unaltered.
+  for (const f of Object.keys(out)) {
+    if (out[f] !== files[f] && f.endsWith('.html')) out[f] = ensureCredit(out[f]);
   }
 
   const changed = Object.keys(out).filter(f => out[f] !== files[f]);
