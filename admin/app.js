@@ -8,12 +8,12 @@
    on the site; a strict policy is worth the extra file.
    ============================================================ */
 
-import { GitHub } from './github.js?v=4';
-import { seal, unseal, suggestPassphrase, strength } from './crypto.js?v=4';
-import { readModel, applyChanges, findUnusedImages } from './content.js?v=4';
+import { GitHub } from './github.js?v=5';
+import { seal, unseal, suggestPassphrase, strength } from './crypto.js?v=5';
+import { readModel, applyChanges, findUnusedImages } from './content.js?v=5';
 import {
   EDITABLE_FILES, REFERENCE_FILES, IMAGE_DIR, GALLERY_CATEGORIES, BENTO_SIZES, groupedTextFields,
-} from './schema.js?v=4';
+} from './schema.js?v=5';
 
 /* ============================================================
    Configuration — the repository this editor maintains.
@@ -207,8 +207,19 @@ function changeCount () {
 function syncBar () {
   saveDraft();
   const n = changeCount();
-  $('bar').classList.toggle('show', n > 0 && S.ready);
-  $('barTxt').innerHTML = n ? `${n} unsaved change${n > 1 ? 's' : ''}<small>Preview, then publish to go live</small>` : '';
+  const st = $('tbStatus');
+  if (st) {
+    st.classList.toggle('pending', n > 0);
+    st.innerHTML = n
+      ? `<i></i>${n} unpublished change${n > 1 ? 's' : ''}`
+      : `${svg(I.check, 14)}Everything's live`;
+  }
+  const pub = $('btnPublish');
+  if (pub && !S.busy) pub.disabled = n === 0;
+  // Dirty dots in the sidebar
+  const c = changes();
+  document.querySelectorAll('[data-dirty]').forEach(el =>
+    el.classList.toggle('dirty', !!c[el.dataset.dirty]));
 }
 window.addEventListener('beforeunload', e => { if (changeCount() > 0) { e.preventDefault(); e.returnValue = ''; } });
 
@@ -447,10 +458,14 @@ const CROP = {
    First-run setup
    ============================================================ */
 function viewPassword (err) {
-  return `<div class="setup"><form class="setup-card" id="pwForm">
+  return `<div class="setup"><aside class="setup-art" aria-hidden="true">
+    <div class="art-mark">RP</div>
+    <div class="art-txt"><span>R. Plane Carpenter</span><strong>Your website,<br><em>in your hands.</em></strong>
+    <p>Change photos, wording and reviews, preview them on a phone or computer, then publish when you're happy.</p></div>
+  </aside><form class="setup-card" id="pwForm">
     <div class="setup-mark">RP</div>
-    <h1>Website Editor</h1>
-    <p class="lede">R. Plane Carpenter</p>
+    <h1>Sign in</h1>
+    <p class="lede">Welcome back. Enter your password to edit your website.</p>
     <input class="sr-only" id="pwUser" type="text" name="username" value="rplanecarpenter.co.uk"
            autocomplete="username" readonly tabindex="-1" aria-hidden="true">
     <div class="field">
@@ -468,7 +483,11 @@ function viewPassword (err) {
 }
 
 function viewSetup (err) {
-  return `<div class="setup"><form class="setup-card" id="setupForm">
+  return `<div class="setup"><aside class="setup-art" aria-hidden="true">
+    <div class="art-mark">RP</div>
+    <div class="art-txt"><span>R. Plane Carpenter</span><strong>Your website,<br><em>in your hands.</em></strong>
+    <p>Change photos, wording and reviews, preview them on a phone or computer, then publish when you're happy.</p></div>
+  </aside><form class="setup-card" id="setupForm">
     <div class="setup-mark">RP</div>
     <h1>Website Editor</h1>
     <p class="lede">One-time setup — about two minutes.</p>
@@ -496,13 +515,13 @@ function viewSetup (err) {
    Views
    ============================================================ */
 const MENU = [
-  { id:'gallery',     ico:I.photo, t:'Gallery photos',   s:'Add, edit and reorder your project photos' },
-  { id:'bento',       ico:I.home,  t:'Homepage photos',  s:'The featured grid on the front page' },
-  { id:'beforeafter', ico:I.swap,  t:'Before & After',   s:'Photo comparison sliders' },
-  { id:'reviews',     ico:I.star,  t:'Reviews',          s:'What your customers say' },
-  { id:'text',        ico:I.text,  t:'Page wording',     s:'Headings and paragraphs on every page' },
-  { id:'contact',     ico:I.phone, t:'Contact details',  s:'Phone number and email address' },
-  { id:'towns',       ico:I.pin,   t:'Towns covered',    s:'The areas listed on your map' },
+  { id:'text',        ico:I.text,  t:'Words on your pages', s:'Banners, headings and paragraphs on every page' },
+  { id:'gallery',     ico:I.photo, t:'Photo gallery',       s:'Add, edit and reorder your project photos' },
+  { id:'bento',       ico:I.home,  t:'Homepage photos',     s:'The featured grid on the front page' },
+  { id:'beforeafter', ico:I.swap,  t:'Before & after',      s:'Photo comparison sliders' },
+  { id:'reviews',     ico:I.star,  t:'Customer reviews',    s:'What your customers say' },
+  { id:'contact',     ico:I.phone, t:'Phone & email',       s:'How customers get in touch' },
+  { id:'towns',       ico:I.pin,   t:'Areas you cover',     s:'The towns listed on your map' },
 ];
 
 function viewMenu () {
@@ -818,12 +837,22 @@ function viewContact () {
    Render
    ============================================================ */
 const TITLES = {
-  menu:'Website Editor', gallery:'Gallery photos', bento:'Homepage photos',
-  beforeafter:'Before & After', reviews:'Reviews', text:'Page wording', contact:'Contact details',
+  menu:'Your website', gallery:'Photo gallery', bento:'Homepage photos',
+  beforeafter:'Before & after', reviews:'Customer reviews', text:'Words on your pages', contact:'Phone & email',
   handover:'Set up another device',
   login:'Password login',
-  towns:'Towns covered',
+  towns:'Areas you cover',
   tidy:'Tidy up photos',
+};
+const SUBS = {
+  menu:'Pick something to change. Nothing goes live until you press Publish.',
+  handover:'Give another phone or computer access to this editor.',
+  login:'Choose the password used to open this editor.',
+  tidy:'Remove photos nothing on the site uses.',
+};
+const PAGE_NAMES = {
+  'index.html':'Home', 'about.html':'About', 'services.html':'Services',
+  'gallery.html':'Gallery', 'contact.html':'Contact', 'privacy-policy.html':'Privacy policy',
 };
 
 function render (err) {
@@ -851,14 +880,51 @@ function render (err) {
     S.view === 'towns' ? viewTowns() :
     S.view === 'tidy' ? viewTidy() : '';
 
-  root.innerHTML = `<div class="app">
-    <header class="topbar">
-      ${S.view !== 'menu' ? `<button class="back" data-go="menu" aria-label="Back">${svg(I.back,18)}</button>` : ''}
-      <h1>${S.view === 'menu' ? '<span class="sub">R. Plane Carpenter</span>' : ''}${esc(TITLES[S.view])}</h1>
+  const navItem = (id, ico, label, extra = '') =>
+    `<button class="side-item ${S.view === id ? 'on' : ''}" data-go="${id}" ${extra}>
+      <span class="side-ico">${svg(ico, 17)}</span><span class="side-t">${esc(label)}</span><span class="side-dot"></span>
+    </button>`;
+  const meta = MENU.find(m => m.id === S.view);
+  root.innerHTML = `<div class="shell">
+    <header class="tb">
+      <div class="tb-brand">
+        <span class="tb-mark">RP</span>
+        <span class="tb-name"><strong>R. Plane Carpenter</strong><small>Website editor</small></span>
+      </div>
+      <div class="tb-status" id="tbStatus" role="status"></div>
+      <button class="btn tb-preview" id="btnPreview">${svg(I.eye, 16)}<span>Preview</span></button>
+      <button class="btn btn-gold tb-publish" id="btnPublish" disabled>${svg(I.up2, 16)}<span>Publish</span></button>
     </header>
-    <main>${body}</main>
+    <div class="layout">
+      <aside class="side" aria-label="Sections">
+        <nav class="side-card">
+          <div class="side-h">Your website</div>
+          ${navItem('menu', I.home, 'Overview')}
+          ${MENU.map(m => navItem(m.id, m.ico, m.t, `data-dirty="${m.id}"`)).join('')}
+        </nav>
+        <nav class="side-card side-extra">
+          <div class="side-h">Settings</div>
+          ${navItem('tidy', I.bin, 'Tidy up photos')}
+          ${navItem('login', I.lock, 'Password login')}
+          ${navItem('handover', I.share, 'Set up another device')}
+        </nav>
+        <div class="side-help">${svg(I.lock, 15)}<span>Your changes stay on this device until you press <b>Publish</b>. Use <b>Preview</b> to check them first.</span></div>
+      </aside>
+      <main class="main">
+        <div class="main-h">
+          ${S.view !== 'menu' ? `<button class="back" data-go="menu" aria-label="Back to overview">${svg(I.back,18)}</button>` : ''}
+          <div class="main-ht">
+            <div class="eyebrow">${S.view === 'menu' ? 'Welcome back' : 'Editing'}</div>
+            <h1>${esc(TITLES[S.view])}</h1>
+            <p class="main-sub">${esc(meta ? meta.s + '.' : (SUBS[S.view] || ''))}</p>
+          </div>
+        </div>
+        ${body}
+      </main>
+    </div>
   </div>`;
   syncBar();
+  root.querySelector('.side-item.on')?.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
 /* ============================================================
@@ -872,7 +938,10 @@ function sheet (title, bodyHtml, footHtml) {
     <div class="sheet-b">${bodyHtml}</div>
     ${footHtml ? `<div class="sheet-f">${footHtml}</div>` : ''}</div>`;
   document.body.appendChild(wrap);
-  wrap.addEventListener('click', e => { if (e.target === wrap || e.target.closest('[data-close]')) wrap.remove(); });
+  wrap.addEventListener('click', e => {
+    if (wrap.classList.contains('locked')) return;      // mid-publish: cannot be dismissed
+    if (e.target === wrap || e.target.closest('[data-close]')) wrap.remove();
+  });
   return wrap;
 }
 
@@ -1232,40 +1301,140 @@ function setPublishStatus (text, tone) {
    ============================================================ */
 const PAGE_FOR = { gallery:'gallery.html', bento:'index.html', beforeafter:'gallery.html', reviews:'index.html', contact:'contact.html', towns:'contact.html', text:'index.html', menu:'index.html' };
 
-function doPreview () {
+/** The page as it would look with every pending edit applied. */
+function previewHtml (page) {
   const c = changes();
-  if (!Object.keys(c).length) return toast('Nothing to preview yet.', 'warn');
-
-  const page = PAGE_FOR[S.view] || 'index.html';
-  let html;
-  try {
-    html = applyChanges(S.files, c).files[page];
-  } catch (err) {
-    return toast(err.message, 'err', 6000);
-  }
+  let html = Object.keys(c).length ? applyChanges(S.files, c).files[page] : S.files[page];
   // A <base> tag makes relative assets resolve against the live site;
   // withFreshImages then redirects anything not published yet to the
   // copy already in this browser, so new photos show immediately.
-  html = withFreshImages(html.replace(/<head>/i, `<head>\n<base href="${SITE}/">`));
+  // The cookie notice is hidden so it does not cover the page being checked.
+  return withFreshImages(html.replace(/<head>/i, `<head>\n<base href="${SITE}/">\n<style>.ck,.ck-reopen{display:none!important}</style>`));
+}
 
-  const w = sheet('Preview', `<iframe class="frame"></iframe>`,
-    `<button class="btn" data-close="1">Close</button><button class="btn btn-gold" data-pub="1">Publish now</button>`);
-  w.querySelector('.sheet-b').style.padding = '0';
-  const doc = w.querySelector('iframe').contentDocument;
-  doc.open(); doc.write(html); doc.close();
+function doPreview () {
+  let page = PAGE_FOR[S.view] || 'index.html';
+  let device = window.innerWidth < 700 ? 'mobile' : 'desktop';
+  const n = changeCount();
 
-  w.addEventListener('click', e => { if (e.target.closest('[data-pub]')) { w.remove(); doPublish(); } });
+  const w = document.createElement('div');
+  w.className = 'pv';
+  w.setAttribute('role', 'dialog');
+  w.setAttribute('aria-modal', 'true');
+  w.setAttribute('aria-label', 'Preview');
+  w.innerHTML = `<div class="pv-bar">
+      <div class="pv-l">
+        <strong>Preview</strong>
+        <span class="pv-badge ${n ? 'pending' : ''}">${n ? `Showing ${n} unpublished change${n > 1 ? 's' : ''}` : 'Same as the live website'}</span>
+      </div>
+      <label class="pv-page"><span class="sr-only">Page</span>
+        <select class="sel" data-pvpage>${EDITABLE_FILES.map(f =>
+          `<option value="${f}" ${f === page ? 'selected' : ''}>${esc(PAGE_NAMES[f] || f)}</option>`).join('')}</select>
+      </label>
+      <div class="seg" role="group" aria-label="Device">
+        <button data-dev="desktop">Desktop</button><button data-dev="mobile">Mobile</button>
+      </div>
+      <div class="pv-r">
+        <button class="btn btn-sm" data-close="1">${svg(I.x, 15)}<span>Close</span></button>
+        ${n ? `<button class="btn btn-gold btn-sm" data-pub="1">${svg(I.up2, 15)}<span>Publish</span></button>` : ''}
+      </div>
+    </div>
+    <div class="pv-stage"><div class="pv-device"><iframe title="Preview of your website"></iframe></div></div>`;
+  document.body.appendChild(w);
+  document.body.classList.add('noscroll');
+
+  const paint = () => {
+    w.classList.toggle('mobile', device === 'mobile');
+    w.querySelectorAll('[data-dev]').forEach(b => b.classList.toggle('on', b.dataset.dev === device));
+    let html;
+    try { html = previewHtml(page); } catch (err) { return toast(err.message, 'err', 6000); }
+    const old = w.querySelector('iframe');
+    const fr = document.createElement('iframe');
+    fr.title = 'Preview of your website';
+    old.replaceWith(fr);
+    const doc = fr.contentDocument;
+    doc.open(); doc.write(html); doc.close();
+  };
+  const close = () => { w.remove(); document.body.classList.remove('noscroll'); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  w.addEventListener('click', e => {
+    const d = e.target.closest('[data-dev]');
+    if (d) { device = d.dataset.dev; return paint(); }
+    if (e.target.closest('[data-close]')) return close();
+    if (e.target.closest('[data-pub]')) { close(); doPublish(); }
+  });
+  w.addEventListener('change', e => { if (e.target.matches('[data-pvpage]')) { page = e.target.value; paint(); } });
+  paint();
+}
+
+/** Plain-English list of what is about to go live. */
+function describeChanges (c) {
+  const out = [];
+  if (c.text) {
+    const labels = new Map();
+    for (const g of S.schema.textGroups) for (const f of g.fields) labels.set(f.id, `${g.name}: ${f.label}`);
+    for (const id of Object.keys(c.text)) out.push(labels.get(id) || id);
+  }
+  const names = { gallery:'Photo gallery', bento:'Homepage photos', beforeafter:'Before & after photos',
+    reviews:'Customer reviews', contact:'Phone & email', towns:'Areas you cover' };
+  for (const k of Object.keys(names)) if (c[k]) out.push(names[k]);
+  return out;
+}
+
+function publishConfirm (items) {
+  return new Promise(resolve => {
+    const w = sheet('Publish your changes', `
+      <p class="lede-sm">These will go live on <b>rplanecarpenter.co.uk</b> for everyone to see:</p>
+      <ul class="chg">${items.map(t => `<li>${svg(I.check, 14)}<span>${esc(t)}</span></li>`).join('')}</ul>
+      <p class="fine">The website usually updates within a minute. You can put things back afterwards with <b>Undo last change</b>.</p>`,
+      `<button class="btn" data-pvfirst="1">${svg(I.eye, 15)}Preview first</button><button class="btn btn-gold" data-yes="1">${svg(I.up2, 15)}Publish now</button>`);
+    w.classList.add('pub');
+    w.addEventListener('click', e => {
+      if (e.target.closest('[data-yes]')) { w.remove(); resolve(true); }
+      else if (e.target.closest('[data-pvfirst]')) { w.remove(); resolve(false); doPreview(); }
+      else if (e.target === w || e.target.closest('[data-close]')) resolve(false);
+    });
+  });
+}
+
+const STEPS = ['Getting the latest version of your website', 'Saving your changes', 'Waiting for the website to update'];
+function progressSheet () {
+  const w = sheet('Publishing…', `<ol class="steps">${STEPS.map((t, i) =>
+    `<li data-step="${i}"><span class="st-ico"></span><span>${esc(t)}</span></li>`).join('')}</ol><div class="pub-result"></div>`, '');
+  w.classList.add('pub', 'locked');
+  return {
+    el: w,
+    step (i) {
+      w.querySelectorAll('[data-step]').forEach(li => {
+        const k = Number(li.dataset.step);
+        li.className = k < i ? 'done' : k === i ? 'now' : '';
+        li.querySelector('.st-ico').innerHTML = k < i ? svg(I.check, 13) : k === i ? '<div class="spinner"></div>' : '';
+      });
+    },
+    finish (kind, title, text, footHtml) {
+      w.classList.remove('locked');
+      w.querySelector('.sheet-h h2').textContent = title;
+      if (kind === 'ok') this.step(STEPS.length);
+      w.querySelector('.pub-result').innerHTML =
+        `<div class="res ${kind}">${svg(kind === 'ok' ? I.check : I.warn, 20)}<div><strong>${esc(title)}</strong><p>${esc(text)}</p></div></div>`;
+      const f = document.createElement('div'); f.className = 'sheet-f'; f.innerHTML = footHtml;
+      w.querySelector('.sheet').appendChild(f);
+    },
+  };
 }
 
 async function doPublish () {
   const c = changes();
   if (!Object.keys(c).length) return toast('Nothing to publish.', 'warn');
   if (S.busy) return;
+  if (!(await publishConfirm(describeChanges(c)))) return;
 
   S.busy = true;
   const btn = $('btnPublish');
-  const label = btn.innerHTML;
-  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  if (btn) btn.disabled = true;
+  const pr = progressSheet();
+  pr.step(0);
 
   const summary = Object.keys(c).map(k => ({
     text:'page wording', gallery:'gallery photos', bento:'homepage photos',
@@ -1281,8 +1450,10 @@ async function doPublish () {
       // something changed elsewhere — another device, or a change pushed
       // straight to the repository — it is carried forward rather than
       // overwritten, and only the edits made here are applied on top.
+      pr.step(0);
       const { files, sha } = await S.gh.readFiles(EDITABLE_FILES);
       const result = applyChanges(files, c);
+      pr.step(1);
 
       if (!result.changed.length) { done = { committed: false, files, sha }; break; }
 
@@ -1309,28 +1480,25 @@ async function doPublish () {
     S.base = clone(S.draft);
     clearDraft();
 
+    const visit = `<a class="btn" href="${SITE}/${done.watch ? done.watch.page : ''}" target="_blank" rel="noopener">${svg(I.eye, 15)}View website</a><button class="btn btn-gold" data-close="1">Done</button>`;
     if (!done.committed) {
-      toast('Nothing had actually changed.', 'warn', 4200);
+      pr.finish('warn', 'Nothing to publish', 'Those edits were already on the website.', '<button class="btn btn-gold" data-close="1">Done</button>');
     } else {
-      toast('Published. Watching for it to appear…', 'ok', 4200);
-      if (done.watch && done.watch.needle) {
-        setPublishStatus('Publishing… the website is rebuilding', 'ink-3');
-        confirmLive(done.watch.page, done.watch.needle).then(live => {
-          setPublishStatus('');
-          toast(live
-            ? 'It is live on the website now.'
-            : 'Published, but it has not appeared yet. Give it another minute, then refresh.',
-            live ? 'ok' : 'warn', live ? 5000 : 7000);
-        });
-      }
+      pr.step(2);
+      const live = done.watch && done.watch.needle ? await confirmLive(done.watch.page, done.watch.needle) : false;
+      pr.finish('ok', live ? 'Your changes are live' : 'Published',
+        live ? 'It is live on the website now. Everyone visiting rplanecarpenter.co.uk sees the new version.'
+             : 'Your changes are saved. The website can take a minute or two to show them — refresh it shortly.',
+        visit);
     }
   } catch (err) {
-    toast(err.conflict
-      ? 'Could not save — the website kept changing underneath. Wait a moment and press Publish again.'
-      : err.message, 'err', 7000);
+    pr.finish('err', 'Not published', err.conflict
+      ? 'The website kept changing while we saved. Your edits are still here — wait a moment and try again.'
+      : `${err.message} Your edits are still here and nothing went live.`,
+      '<button class="btn" data-close="1">Close</button><button class="btn btn-gold" data-retry="1">Try again</button>');
+    pr.el.addEventListener('click', e => { if (e.target.closest('[data-retry]')) { pr.el.remove(); doPublish(); } });
   } finally {
     S.busy = false;
-    btn.disabled = false; btn.innerHTML = label;
     syncBar(); render();
   }
 }

@@ -336,6 +336,10 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.06)}
 .footer-inner{max-width:1200px;margin:0 auto;padding:0 clamp(20px,5vw,60px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:.73rem;color:rgba(255,255,255,.3)}
 .footer-inner a{color:rgba(255,255,255,.45);transition:color .25s}
 .footer-inner a:hover{color:var(--gold)}
+/* Site credit — template, not content; the editor cannot change it */
+.jp-credit{text-align:center;padding:10px 20px calc(12px + env(safe-area-inset-bottom,0px));font-size:.66rem;letter-spacing:.08em;line-height:1.4}
+.jp-credit a{color:rgba(255,255,255,.22);text-decoration:none;transition:color .25s}
+.jp-credit a:hover,.jp-credit a:focus-visible{color:rgba(255,255,255,.55)}
 
 /* WHATSAPP FAB */
 .whatsapp-fab{position:fixed;bottom:24px;right:24px;z-index:300;width:58px;height:58px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 22px rgba(37,211,102,.45);transition:transform .3s var(--spring),box-shadow .3s;color:#fff}
